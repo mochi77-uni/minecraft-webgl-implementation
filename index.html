@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+precision mediump float;
+
+attribute vec4 vPosition;
+attribute vec4 vColor;
+attribute vec4 vNormal;
+
+varying vec4 fPosition;
+varying vec4 fColor;
+varying vec4 fNormal;
+
+uniform mat4 modelingMatrix;
+uniform mat4 viewingMatrix;
+uniform mat4 projectionMatrix;
+uniform mat4 normalMatrix;
+
+void main()
+{
+    vec4 P = vPosition;
+    vec4 N = vNormal;
+        
+    P.w = 1.0;
+	fPosition = modelingMatrix * P;
+
+    N.w = 0.0;
+    N = modelingMatrix * N ;	// Normal vector
+    fNormal = normalize( N );
+
+    fColor = vColor;
+    gl_Position = projectionMatrix * viewingMatrix * modelingMatrix * vPosition;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+
+varying vec4 fPosition;
+varying vec4 fColor;  // Note that this will be interpolated between vertices.
+varying vec4 fNormal;
+
+uniform mat4 modelingMatrix;
+uniform mat4 viewingMatrix;
+uniform mat4 projectionMatrix;
+uniform mat4 normalMatrix;
+
+uniform vec4 eyePosition;
+uniform vec4 lightPosition;
+uniform vec4 materialAmbient;
+uniform vec4 materialDiffuse;
+uniform vec4 materialSpecular;
+uniform float shininess;
+
+void main()
+{
+    vec4 L = normalize( lightPosition - fPosition ); // Light vector
+    vec4 N = normalize( fNormal );	// Normal vector
+	vec4 V = normalize( eyePosition - fPosition );		// Eye vector.
+    vec4 H = normalize( L + V );  // Halfway vector in the modified Phong model
+	
+    // Compute terms in the illumination equation
+    vec4 ambient = materialAmbient;
+
+    float Kd = max( dot(L, N), 0.0 );
+    vec4  diffuse = Kd * materialDiffuse;
+
+	float Ks = pow( max(dot(N, H), 0.0), shininess );
+    vec4  specular = Ks * materialSpecular;
+
+	// fColor influences the ambient and the diffuse, but not the specular
+    gl_FragColor = (ambient + diffuse) * fColor + specular;
+}
+</script>
+
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="basic-objects-IFS.js"></script>
+<script type="text/javascript" src="hw4.js"></script>
+</head>
+
+<body>
+<canvas id="gl-canvas" width="512" height="512">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+
+<br/>
+<button id="xButton">Rotate X</button>
+<button id="yButton">Rotate Y</button>
+<button id="zButton">Rotate Z</button>
+<br/>
+<button id="pButton" style="background-color:#00ff00">Pause</button>
+<button id="dButton" style="background-color:#6688cc">Depth Test</button>
+
+</body>
+</html>
