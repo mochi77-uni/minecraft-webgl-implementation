@@ -1,0 +1,21 @@
+
+#wrapper {
+    overflow: hidden;
+}
+
+#gl-canvas {
+    background-color: #fff;
+    border: 1px solid black;
+    /* NOTE: This size is changed if in iframe - see below '.iframe canvas' */
+    width: 800px;
+    height: 600px;
+    float: left;
+}
+
+#ui-container {
+    border-left: 20px solid transparent;
+    float: left;
+}
+#ui {
+    opacity: 0.8;
+}
