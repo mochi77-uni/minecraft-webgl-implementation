@@ -74,28 +74,47 @@ window.onload = function init() {
 	});
 	console.log("checkerboardTexture\n", checkerboardTexture);
 
-	// create test texture
-	const testImageTexture = twgl.createTexture(gl, {
-		src: "img/texture/birch_planks.png",
-		mag: gl.NEAREST
+	const blockTextures = twgl.createTextures(gl, {
+		grass: {
+			target: gl.TEXTURE_CUBE_MAP,
+			src: [
+				"img/texture/grass_block_side.png",
+				"img/texture/grass_block_side.png",
+				"img/texture/grass_block_top.png",
+				"img/texture/dirt.png",
+				"img/texture/grass_block_side.png",
+				"img/texture/grass_block_side.png",
+			]
+		},
+		bricks: { src: "img/texture/bricks.png" },
+		dirt: { src: "img/texture/dirt.png" },
+		birch_planks: { src: "img/texture/birch_planks.png"}
 	});
-
+	// const blockTextures = getBlockTextures(gl);
+	const bumpTextures = twgl.createTextures(gl, {
+		bricks: { src: "img/texture_n/bricks_n.png" },
+		dirt: { src: "img/texture_n/dirt_n.png" },
+		birch_planks: { src: "img/texture_n/birch_planks_n.png"}
+	});
+	console.log(blockTextures);
 
 	// create cube buffer
 	const cubeBufferInfo = twgl.primitives.createCubeBufferInfo(gl, 1, 50, 50);
 	const cubeUniforms = {
-		texture: checkerboardTexture,
-		modelMatrix: m4.identity(),
+		texture: blockTextures.bricks,
+		bumpTexture: bumpTextures.bricks,
+		modelMatrix: m4.identity()
 	};
 	const cube2Uniforms = {
-		texture: checkerboardTexture,
+		texture: blockTextures.dirt,
+		bumpTexture: bumpTextures.dirt,
 		modelMatrix: m4.translate(m4.identity(), [1, -1, 0])
 	};
 
 	const planeBufferInfo = twgl.primitives.createPlaneBufferInfo(gl, 10, 10);
 	const planeUniforms = {
-		texture: testImageTexture,
-		modelMatrix: m4.translate(m4.identity(), [0, -2, 0])
+		texture: blockTextures.birch_planks,
+		modelMatrix: m4.translate(m4.identity(), [0, -1.5, 0])
 	};
 
 	const cubeLinesBufferInfo = twgl.createBufferInfoFromArrays(gl, {
@@ -130,7 +149,7 @@ window.onload = function init() {
 	const settings = {
 		cameraPos: [2.5, 1.0, -1.0],
 		cameraTarget: [0, 0, 0],
-		lightPos: [-0.5, 3.5, -0.5],
+		lightPos: [0.0, 3.5, 0.0],
 		lightTarget: [0, 0, 0],
 		viewField: 30,
 		projWidth: 16,
@@ -152,6 +171,12 @@ window.onload = function init() {
 	]);
 
 	webglLessonsUI.setupUI(document.querySelector('#ui'), settings.cameraTarget, [
+		{ type: 'slider',key: '0', min:  -10, max: 10, precision: 4, step: 0.0001 },
+		{ type: 'slider',key: '1', min:  -10, max: 10, precision: 4, step: 0.0001 },
+		{ type: 'slider',key: '2', min:  -10, max: 10, precision: 4, step: 0.0001 },
+	]);
+
+	webglLessonsUI.setupUI(document.querySelector('#ui'), settings.lightPos, [
 		{ type: 'slider',key: '0', min:  -10, max: 10, precision: 4, step: 0.0001 },
 		{ type: 'slider',key: '1', min:  -10, max: 10, precision: 4, step: 0.0001 },
 		{ type: 'slider',key: '2', min:  -10, max: 10, precision: 4, step: 0.0001 },
@@ -187,7 +212,7 @@ window.onload = function init() {
 		gl.bindFramebuffer(gl.FRAMEBUFFER, depthFrameBuffer);
 		gl.viewport(0, 0, depthTextureSize, depthTextureSize);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		drawScene(lightProjMatrix, lightModelMatrix, m4.identity(), shadowProgramInfo);
+		drawScene(lightProjMatrix, lightModelMatrix, m4.identity(), lightModelMatrix, shadowProgramInfo);
 
 		/*  Draw scene to the main frame buffer */
 		let textureMatrix = m4.identity();
@@ -208,7 +233,7 @@ window.onload = function init() {
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		drawScene(cameraProjMatrix, cameraModelMatrix, textureMatrix, generalProgramInfo);
+		drawScene(cameraProjMatrix, cameraModelMatrix, textureMatrix, lightModelMatrix, generalProgramInfo);
 
 		{
 			const viewMatrix = m4.inverse(cameraModelMatrix);
@@ -229,7 +254,7 @@ window.onload = function init() {
 		requestAnimationFrame(render);
 	}
 
-	function drawScene(projMatrix, cameraMatrix, textureMatrix, programInfo) {
+	function drawScene(projMatrix, cameraMatrix, textureMatrix, lightModelMatrix, programInfo) {
 		const viewMatrix = m4.inverse(cameraMatrix);
 		gl.useProgram(programInfo.program);
 
@@ -238,12 +263,14 @@ window.onload = function init() {
 			projMatrix: projMatrix,
 			texMatrix: textureMatrix,
 			projectedTexture: depthTexture,
+			lightPos: settings.lightPos,
 			bias: settings.bias
 		});
 
         twgl.setBuffersAndAttributes(gl, programInfo, cubeBufferInfo);
 		twgl.setUniforms(programInfo, cubeUniforms);
 		twgl.drawBufferInfo(gl, cubeBufferInfo);
+
 		twgl.setUniforms(programInfo, cube2Uniforms);
 		twgl.drawBufferInfo(gl, cubeBufferInfo);
 
