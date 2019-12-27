@@ -1,10 +1,10 @@
 
-attribute vec4 vPosition;
+attribute vec4 a_position;
 
-uniform mat4 modeling;
-uniform mat4 viewing;
-uniform mat4 projection;
+uniform mat4 modelMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 projMatrix;
 
 void main() {
-    gl_Position = projection * viewing * modeling * vPosition;
+    gl_Position = projMatrix * viewMatrix * modelMatrix * a_position;
 }

@@ -1,22 +1,22 @@
 
-attribute vec4 vPosition;
-attribute vec2 vTexcoord;
-attribute vec3 vNormal;
+attribute vec4 a_position;
+attribute vec2 a_texcoord;
+attribute vec3 a_normal;
 
-uniform mat4 projection;
-uniform mat4 viewing;
-uniform mat4 modeling;
-uniform mat4 textureMatrix;
+uniform mat4 projMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 modelMatrix;
+uniform mat4 texMatrix;
 
-varying vec2 fTexcoord;
-varying vec4 fProjectedTexcoord;
-varying vec3 fNormal;
+varying vec2 f_texcoord;
+varying vec4 f_projectedTexcoord;
+varying vec3 f_normal;
 
 void main() {
-    vec4 worldPosition = modeling * vPosition;
-    fTexcoord = vTexcoord;
-//    fProjectedTexcoord = textureMatrix * worldPosition;
-    fNormal = mat3(modeling) * vNormal;
+    vec4 worldPosition = modelMatrix * a_position;
+    f_texcoord = a_texcoord;
+    f_projectedTexcoord = texMatrix * worldPosition;
+    f_normal = mat3(modelMatrix) * a_normal;
 
-    gl_Position = projection * viewing * worldPosition;
+    gl_Position = projMatrix * viewMatrix * worldPosition;
 }

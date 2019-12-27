@@ -19,63 +19,17 @@ window.onload = function init() {
 	const m4 = twgl.m4;
 
 	const canvas = document.getElementById("gl-canvas");
-	// const gl = canvas.getContext("experimental-webgl");
 	const gl = WebGLUtils.setupWebGL(canvas, null);
-	// twgl.addExtensionsToContext(gl);
 
 	const ext = gl.getExtension("WEBGL_depth_texture");
 	if(!ext) {alert("Could not locate depth texture extension")}
 	console.log(ext);
 
+	twgl.setDefaults({attribPrefix:'a_'});
+
 	const generalProgramInfo = createProgramInfo(gl, "shaders/general.vert", "shaders/general.frag");
 	const shadowProgramInfo = createProgramInfo(gl, "shaders/shadow.vert", "shaders/shadow.frag");
-	// console.log(generalProgramInfo, shadowProgramInfo);
-
-	// create checkerboard texture for testing
-
-	// const checkerboardTexture = gl.createTexture();
-	// gl.bindTexture(gl.TEXTURE_2D, checkerboardTexture);
-	// gl.texImage2D(
-	//     gl.TEXTURE_2D,
-	//     0,                // mip level
-	//     gl.LUMINANCE,     // internal format
-	//     8,                // width
-	//     8,                // height
-	//     0,                // border
-	//     gl.LUMINANCE,     // format
-	//     gl.UNSIGNED_BYTE, // type
-	//     new Uint8Array([  // data
-	//         0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC,
-	//         0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF,
-	//         0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC,
-	//         0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF,
-	//         0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC,
-	//         0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF,
-	//         0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC,
-	//         0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF,
-	//     ]));
-	// gl.generateMipmap(gl.TEXTURE_2D);
-	// gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-	const checkerboardSrc = new Uint8Array([  // data
-		0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC,
-		0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF,
-		0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC,
-		0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF,
-		0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC,
-		0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF,
-		0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC,
-		0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF, 0xCC, 0xFF,
-	]);
-	const checkerboardTexture = twgl.createTexture(gl, {
-		target: gl.TEXTURE_2D,
-		level: 0, width: 8, height: 8,
-		internalFormat: gl.LUMINANCE,
-		format: gl.LUMINANCE,
-		type: gl.UNSIGNED_BYTE,
-		src: checkerboardSrc,
-		mag: gl.NEAREST
-	});
-	console.log("checkerboardTexture\n", checkerboardTexture);
+	console.log(generalProgramInfo, shadowProgramInfo);
 
 	// create depth texture for shadow
 	const depthTextureSize = 512;
@@ -107,31 +61,42 @@ window.onload = function init() {
 		0                // mip level
 	);
 
-	// const depthTexture = twgl.createTexture(gl, {
-	//     target: gl.TEXTURE_2D,
-	//     level: 0, width: depthTextureSize, height: depthTextureSize,
-	//     internalFormat: gl.DEPTH_COMPONENT24,
-	//     format: gl.DEPTH_COMPONENT24,
-	//     type: gl.UNSIGNED_SHORT,
-	//     mag: gl.NEAREST, minMag: gl.NEAREST,
-	//     wrapS: gl.CLAMP_TO_EDGE, wrapT: gl.CLAMP_TO_EDGE
-	// });
-	//
-	// console.log("depthTexture\n", depthTexture);
-	//
-	// // setup depth frame buffer and bind to it
-	// const attachments = [{
-	//     attachment: depthTexture
-	// }];
-	// const depthFrameBuffer = twgl.createFramebufferInfo(gl, attachments);
+	// create checkerboard texture for testing
+	const checkerboardTexture = twgl.createTexture(gl, {
+		min: gl.NEAREST,
+		mag: gl.NEAREST,
+		src: [
+			255, 255, 255, 255,
+			192, 192, 192, 255,
+			192, 192, 192, 255,
+			255, 255, 255, 255,
+		],
+	});
+	console.log("checkerboardTexture\n", checkerboardTexture);
+
+	// create test texture
+	const testImageTexture = twgl.createTexture(gl, {
+		src: "img/texture/birch_planks.png",
+		mag: gl.NEAREST
+	});
+
 
 	// create cube buffer
-	const cubeBufferInfo = twgl.primitives.createCubeBufferInfo(gl, 1);
+	const cubeBufferInfo = twgl.primitives.createCubeBufferInfo(gl, 1, 50, 50);
 	const cubeUniforms = {
 		texture: checkerboardTexture,
-		modeling: m4.identity(),
+		modelMatrix: m4.identity(),
 	};
-	console.log(cubeBufferInfo);
+	const cube2Uniforms = {
+		texture: checkerboardTexture,
+		modelMatrix: m4.translate(m4.identity(), [1, -1, 0])
+	};
+
+	const planeBufferInfo = twgl.primitives.createPlaneBufferInfo(gl, 10, 10);
+	const planeUniforms = {
+		texture: testImageTexture,
+		modelMatrix: m4.translate(m4.identity(), [0, -2, 0])
+	};
 
 	const cubeLinesBufferInfo = twgl.createBufferInfoFromArrays(gl, {
 		position: [
@@ -163,30 +128,34 @@ window.onload = function init() {
 	});
 
 	const settings = {
-		cameraPos: v3.create(3, 3, 3),
-		pos: v3.create(2.5, 4.8, 4.3),
-		target: v3.create(2.5, 0, 3.5),
-		viewField: 120,
-		projWidth: 1,
-		projHeight: 1
+		cameraPos: [2.5, 1.0, -1.0],
+		cameraTarget: [0, 0, 0],
+		lightPos: [-0.5, 3.5, -0.5],
+		lightTarget: [0, 0, 0],
+		viewField: 30,
+		projWidth: 16,
+		projHeight: 16,
+		bias: -0.035
 	};
 
 	webglLessonsUI.setupUI(document.querySelector('#ui'), settings, [
-		{ type: 'slider',   key: 'cameraPos.x',    min: -10, max: 10, change: render, precision: 2, step: 0.001, },
-		{ type: 'slider',   key: 'cameraPos.y',    min: -10, max: 10, change: render, precision: 2, step: 0.001, },
-		{ type: 'slider',   key: 'cameraPos.z',    min: -10, max: 10, change: render, precision: 2, step: 0.001, },
-		// { type: 'slider',   key: 'pos.x',       min: -10, max: 10, change: re    nder, precision: 2, step: 0.001, },
-		// { type: 'slider',   key: 'pos.y',       min:   1, max: 20, change: render, precision: 2, step: 0.001, },
-		// { type: 'slider',   key: 'pos.z',       min:   1, max: 20, change: render, precision: 2, step: 0.001, },
-		// { type: 'slider',   key: 'target.x',    min: -10, max: 10, change: render, precision: 2, step: 0.001, },
-		// { type: 'slider',   key: 'target.y',    min:   0, max: 20, change: render, precision: 2, step: 0.001, },
-		// { type: 'slider',   key: 'target.z',    min: -10, max: 20, change: render, precision: 2, step: 0.001, },
-		// { type: 'slider',   key: 'projWidth',  min:   0, max: 100, change: render, precision: 2, step: 0.001, },
-		// { type: 'slider',   key: 'projHeight', min:   0, max: 100, change: render, precision: 2, step: 0.001, },
-		// { type: 'slider',   key: 'viewField', min:  1, max: 179, change: render, },
-		// { type: 'slider',   key: 'bias',       min:  -0.01, max: 0.00001, change: render, precision: 4, step: 0.0001, },
+		{ type: 'slider',key: 'bias', min:  -0.1, max: 0.0001, precision: 4, step: 0.0001 },
+		{ type: 'slider',key: 'viewField', min:  0, max: 90, precision: 4, step: 0.0001 },
+		{ type: 'slider',key: 'projWidth', min:  0, max: 10, precision: 4, step: 0.0001 },
+		{ type: 'slider',key: 'projHeight', min:  0, max: 10, precision: 4, step: 0.0001 },
 	]);
 
+	webglLessonsUI.setupUI(document.querySelector('#ui'), settings.cameraPos, [
+		{ type: 'slider',key: '0', min:  -10, max: 10, precision: 4, step: 0.0001 },
+		{ type: 'slider',key: '1', min:  -10, max: 10, precision: 4, step: 0.0001 },
+		{ type: 'slider',key: '2', min:  -10, max: 10, precision: 4, step: 0.0001 },
+	]);
+
+	webglLessonsUI.setupUI(document.querySelector('#ui'), settings.cameraTarget, [
+		{ type: 'slider',key: '0', min:  -10, max: 10, precision: 4, step: 0.0001 },
+		{ type: 'slider',key: '1', min:  -10, max: 10, precision: 4, step: 0.0001 },
+		{ type: 'slider',key: '2', min:  -10, max: 10, precision: 4, step: 0.0001 },
+	]);
 
 	gl.clearColor(1.0, 1.0, 1.0, 1.0);
 	render();
@@ -198,72 +167,88 @@ window.onload = function init() {
 		gl.enable(gl.DEPTH_TEST);
 
 		/*  Draw scene to the depth frame buffer */
-		const lightModelingMatrix = m4.lookAt(
-			[settings.pos.x, settings.pos.y, settings.pos.z],
-			[settings.target.x, settings.target.y, settings.target.z],
+		const lightModelMatrix = m4.lookAt(
+			settings.lightPos,
+			settings.lightTarget,
 			[0, 1, 0]
 		);
-		const lightProjectionMatrix = m4.perspective(
-			deg2rad(settings.viewField),
-			settings.projWidth / settings.projHeight,
-			0.5, 10     // near, far
+		// const lightProjMatrix = m4.perspective(
+		// 	deg2rad(settings.viewField),
+		// 	settings.projWidth / settings.projHeight,
+		// 	0.5, 10     // near, far
+		// );
+		const lightProjMatrix = m4.ortho(
+			-settings.projWidth / 2,
+			 settings.projWidth / 2,
+			-settings.projHeight / 2,
+			 settings.projHeight / 2,
+			0.5, 10
 		);
-		twgl.bindFramebufferInfo(gl, depthFrameBuffer);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, depthFrameBuffer);
 		gl.viewport(0, 0, depthTextureSize, depthTextureSize);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		drawScene(lightProjectionMatrix, lightModelingMatrix, m4.identity(), shadowProgramInfo);
+		drawScene(lightProjMatrix, lightModelMatrix, m4.identity(), shadowProgramInfo);
 
 		/*  Draw scene to the main frame buffer */
 		let textureMatrix = m4.identity();
 		textureMatrix = m4.translate(textureMatrix, [0.5, 0.5, 0.5]);
 		textureMatrix = m4.scale(textureMatrix, [0.5, 0.5, 0.5]);
-		textureMatrix = m4.multiply(textureMatrix, lightProjectionMatrix);
-		textureMatrix = m4.multiply(textureMatrix, m4.inverse(lightModelingMatrix));
-		const cameraMatrix = m4.lookAt(
-			[settings.cameraPos.x, settings.cameraPos.y, settings.cameraPos.z],
-			[0, 0, 0],
+		textureMatrix = m4.multiply(textureMatrix, lightProjMatrix);
+		textureMatrix = m4.multiply(textureMatrix, m4.inverse(lightModelMatrix));
+		const cameraModelMatrix = m4.lookAt(
+			settings.cameraPos,
+			settings.cameraTarget,
 			[0, 1, 0]
 		);
-		const projectionMatrix = m4.perspective(
+		const cameraProjMatrix = m4.perspective(
 			deg2rad(60),
 			gl.canvas.clientWidth / gl.canvas.clientHeight,
-			1, 2000
+			1, 200
 		);
-		twgl.bindFramebufferInfo(gl);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		drawScene(projectionMatrix, cameraMatrix, textureMatrix, generalProgramInfo);
+		drawScene(cameraProjMatrix, cameraModelMatrix, textureMatrix, generalProgramInfo);
 
 		{
-			const viewMatrix = m4.inverse(cameraMatrix);
+			const viewMatrix = m4.inverse(cameraModelMatrix);
 
 			gl.useProgram(shadowProgramInfo.program);
 			twgl.setBuffersAndAttributes(gl, shadowProgramInfo, cubeLinesBufferInfo);
 
-			const mat = m4.multiply(lightModelingMatrix, m4.inverse(lightProjectionMatrix));
+			const mat = m4.multiply(lightModelMatrix, m4.inverse(lightProjMatrix));
 
 			twgl.setUniforms(shadowProgramInfo, {
-				viewing: viewMatrix,
-				projection: projectionMatrix,
-				modeling: mat,
+				viewMatrix: viewMatrix,
+				projMatrix: cameraProjMatrix,
+				modelMatrix: mat,
 			});
 
 			twgl.drawBufferInfo(gl, cubeLinesBufferInfo, gl.LINES);
-		}``
+		}
+		requestAnimationFrame(render);
 	}
 
-	function drawScene(projectionMatrix, cameraMatrix, textureMatrix, programInfo) {
-		const viewingMatrix = m4.inverse(cameraMatrix);
+	function drawScene(projMatrix, cameraMatrix, textureMatrix, programInfo) {
+		const viewMatrix = m4.inverse(cameraMatrix);
 		gl.useProgram(programInfo.program);
 
-        twgl.setBuffersAndAttributes(gl, programInfo, cubeBufferInfo);
 		twgl.setUniforms(programInfo, {
-			viewing: viewingMatrix,
-			projection: projectionMatrix,
-			textureMatrix: textureMatrix,
-			projectedTexture: depthTexture
+			viewMatrix: viewMatrix,
+			projMatrix: projMatrix,
+			texMatrix: textureMatrix,
+			projectedTexture: depthTexture,
+			bias: settings.bias
 		});
+
+        twgl.setBuffersAndAttributes(gl, programInfo, cubeBufferInfo);
 		twgl.setUniforms(programInfo, cubeUniforms);
 		twgl.drawBufferInfo(gl, cubeBufferInfo);
+		twgl.setUniforms(programInfo, cube2Uniforms);
+		twgl.drawBufferInfo(gl, cubeBufferInfo);
+
+		twgl.setBuffersAndAttributes(gl, programInfo, planeBufferInfo);
+		twgl.setUniforms(programInfo, planeUniforms);
+		twgl.drawBufferInfo(gl, planeBufferInfo);
 	}
 };
