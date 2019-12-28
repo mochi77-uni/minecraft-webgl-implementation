@@ -32,11 +32,13 @@ void main() {
 
     vec2 taxel = texture2D(bumpTexture, f_texcoord).xy * 2.0 - 1.0;
     vec3 normal = normalize(f_normal);
-    normal.xy += (1.0-taxel);
+    normal.xy += (1.0-taxel.xy);
     normal = normalize(normal);
 
     float light = dot(f_lightDir, normal);
-    light = 1.2 * min(shadowColor, light);
+    light = max(light, opacity);
+    light = min(shadowColor, light);
+//    light = shadowColor;
 
     // set the actual fragment color
     vec4 texcolor = texture2D(texture, f_texcoord);

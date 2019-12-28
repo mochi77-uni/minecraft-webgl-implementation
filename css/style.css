@@ -19,3 +19,11 @@
 #ui {
     opacity: 0.8;
 }
+
+#ui-container2 {
+    border-left: 20px solid transparent;
+    float: left;
+}
+#ui2 {
+    opacity: 0.8;
+}
