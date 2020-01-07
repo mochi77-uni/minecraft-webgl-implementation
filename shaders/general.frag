@@ -44,6 +44,6 @@ void main() {
 
     // set the actual fragment color
     vec4 texcolor = texture2D(texture, f_texcoord);
-    float fogAmount = smoothstep(0.0, 64.0, f_fogDepth);
-    gl_FragColor = mix(vec4(light * texcolor.rgb, texcolor.a), vec4(0.5, 0.7, 1.0, 0.0), fogAmount);
+    float fogAmount = smoothstep(16.0, 32.0, f_fogDepth);
+    gl_FragColor = mix(vec4(light * texcolor.rgb, texcolor.a), vec4(0.5, 0.7, 1.0, 1.0), fogAmount);
 }

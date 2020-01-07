@@ -17,11 +17,18 @@
     <script type="text/javascript" src="script/worldgen.js"></script>
     <script type="text/javascript" src="script/main.js"></script>
 </head>
-<body style="background-color:gray">
-    <div id="wrapper">
+<body>
+    <div id="canvas-container">
         <canvas id="gl-canvas">
             Your Browser is not support GL Utilities.
         </canvas>
+        <div id="overlay">
+            <div id="x-display"></div>
+            <div id="y-display"></div>
+            <div id="z-display"></div>
+        </div>
+    </div>
+    <div id="wrapper">
         <div id="ui-container">
             <div id="ui"></div>
         </div>

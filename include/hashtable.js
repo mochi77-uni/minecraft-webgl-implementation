@@ -20,11 +20,11 @@ function HashTable() {
                 this.keys.splice(keyIndex, 1);
         }
         return tmp_previous;
-    }
+    };
 
     this.getItem = function(in_key) {
         return this.items[in_key];
-    }
+    };
 
     this.setItem = function(in_key, in_value) {
         var tmp_previous;
@@ -41,11 +41,11 @@ function HashTable() {
         }
 
         return tmp_previous;
-    }
+    };
 
     this.hasItem = function(in_key) {
         return typeof (this.items[in_key]) != 'undefined';
-    }
+    };
 
     this.hasKey = function(keyValue) {
         for (var ki = 0, keysL = this.keys.length; ki < keysL; ki++) {
@@ -54,7 +54,7 @@ function HashTable() {
             }
         }
         return undefined;
-    }
+    };
 
     this.clear = function() {
         this.keys.splice(0, this.keys.length);

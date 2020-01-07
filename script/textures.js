@@ -39,15 +39,24 @@ function getBumpTextures(gl) {
 }
 
 function getSkyTexture(gl) {
+    const faceInfos = [
+        'https://webglfundamentals.org/webgl/resources/images/computer-history-museum/pos-x.jpg',
+        'https://webglfundamentals.org/webgl/resources/images/computer-history-museum/neg-x.jpg',
+        'https://webglfundamentals.org/webgl/resources/images/computer-history-museum/pos-y.jpg',
+        'https://webglfundamentals.org/webgl/resources/images/computer-history-museum/neg-y.jpg',
+        'https://webglfundamentals.org/webgl/resources/images/computer-history-museum/pos-z.jpg',
+        'https://webglfundamentals.org/webgl/resources/images/computer-history-museum/neg-z.jpg',
+    ];
+    const imageSrc = [
+        "img/sky/Left.bmp",
+        "img/sky/Right.bmp",
+        "img/sky/Top.bmp",
+        "img/sky/bottom.bmp",
+        "img/sky/Front.bmp",
+        "img/sky/Back.bmp",
+    ];
     return twgl.createTexture(gl, {
        target: gl.TEXTURE_CUBE_MAP,
-       src: [
-           "img/sky/sky_posx.jpeg",
-           "img/sky/sky_negx.jpeg",
-           "img/sky/sky_posy.jpeg",
-           "img/sky/sky_negy.jpeg",
-           "img/sky/sky_posz.jpeg",
-           "img/sky/sky_negz.jpeg",
-       ]
+       src: imageSrc
     });
 }

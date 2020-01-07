@@ -3,6 +3,23 @@ let blocksUniformList = [];
 let blockPosition = new HashTable();
 let blockTextures, bumpTextures;
 
+function readTextFile(file){
+    let rawFile = new XMLHttpRequest();
+    let allText;
+    rawFile.open("GET", file, false);
+    rawFile.onreadystatechange = function ()
+    {
+        if(rawFile.readyState === 4)
+        {
+            if(rawFile.status === 200 || rawFile.status === 0)
+            {
+                allText = rawFile.responseText;
+            }
+        }
+    };
+    rawFile.send(null);
+    return allText;
+}
 
 function initBlocksTextures(gl) {
     blockTextures = getBlockTextures(gl);
@@ -11,7 +28,8 @@ function initBlocksTextures(gl) {
 }
 
 function getNameById(object, value) {
-    return Object.keys(object).find(key => object[key][0] === value[0] && object[key][1] === value[1]);
+    const list = (Number.isInteger(value)) ? [value, 0] : value;
+    return Object.keys(object).find(key => object[key][0] === list[0] && object[key][1] === list[1]);
 }
 
 function placeBlock(x, y, z, id) {
@@ -21,13 +39,34 @@ function placeBlock(x, y, z, id) {
     }
     const name = (typeof id === "string") ? id : getNameById(blockIdList, id);
     const isCubemap = cubeMapBlocksList.includes(name);
+    // console.log(id);
     blocksUniformList.push({
         texture: blockTextures[name],
         bumpTexture: bumpTextures[name],
         modelMatrix: m4.translate(m4.identity(), [x, y, z]),
-        isCubemap: isCubemap
+        isCubemap: isCubemap,
+        pos: [x, y, z]
     });
     blockPosition.setItem([x, y, z], true);
+}
+
+function placeBlockByMap(mapName, offset) {
+    const mapLocation = "./map/" + mapName + ".txt";
+    const lines = readTextFile(mapLocation).split('\n');
+    lines.forEach(function(line) {
+        const words = line.split(' ');
+        const pos = words.slice(0, 4).map(Number);
+        // console.log(pos);
+        placeBlock(pos[0], pos[1], pos[2], pos[3]);
+    });
+}
+
+function getTextureUniforms(id) {
+    const name = (typeof id === "string") ? id : getNameById(blockIdList, id);
+    return {
+        texture: blockTextures[name],
+        bumpTexture: bumpTextures[name],
+    };
 }
 
 const blockIdList = {
