@@ -5,6 +5,10 @@ function deg2rad(d) {
 	return d * Math.PI / 180;
 }
 
+function rad2deg(d) {
+	return d / Math.PI * 180;
+}
+
 function createProgramInfo(gl, vShaderSrc, fShaderSrc) {
 	const program = initShaders(gl, vShaderSrc, fShaderSrc);
 	return {
@@ -12,6 +16,20 @@ function createProgramInfo(gl, vShaderSrc, fShaderSrc) {
 		uniformSetters: twgl.createUniformSetters(gl, program),
 		attribSetters: twgl.createAttributeSetters(gl, program)
 	};
+}
+
+function Mat4multVec3(v, m) {
+	v = [v[0], v[1], v[2], 1.0];
+	let newV = [0.0, 0.0, 0.0, 0.0];
+	for(let i = 0; i < 4; i++) {
+		for(let j = 0; j < 4; j++) {
+			newV[i] += v[i] * m[i*4 + j];
+		}
+	}
+	// if(newV[3] !== 1.0)
+	// 	for(let i = 0; i < 3; i++)
+	// 		newV[i] /= newV[3];
+	return newV;
 }
 
 let AKeyPressed, DKeyPressed, WKeyPressed, SKeyPressed;
@@ -38,13 +56,13 @@ window.onload = function init() {
 	twgl.setDefaults({attribPrefix: 'a_'});
 
 	const generalProgramInfo = createProgramInfo(gl, "shaders/general.vert", "shaders/general.frag");
-	// const generalCubeProgramInfo = createProgramInfo(gl, "shaders/general_cube.vert", "shaders/general_cube.frag");
 	const shadowProgramInfo = createProgramInfo(gl, "shaders/shadow.vert", "shaders/shadow.frag");
 	const skyboxProgramInfo = createProgramInfo(gl, "shaders/skybox.vert", "shaders/skybox.frag");
+	const testProgramInfo = createProgramInfo(gl, "shaders/test.vert", "shaders/test.frag");
 	console.log(generalProgramInfo, shadowProgramInfo);
 
 	// create depth texture for shadow
-	const depthTextureSize = 1024;
+	const depthTextureSize = 2048;
 	const depthTexture = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, depthTexture);
 	gl.texImage2D(
@@ -87,6 +105,7 @@ window.onload = function init() {
 	console.log("checkerboardTexture\n", checkerboardTexture);
 
 	initBlocksTextures(gl);
+	const skyTexture = getSkyTexture(gl);
 
 	// create cube buffer
 	const cubeBufferInfo = twgl.primitives.createCubeBufferInfo(gl, 1);
@@ -113,27 +132,11 @@ window.onload = function init() {
 			for(let k = -2; k < 2; k++)
 					placeBlock(i+3, j, k+3, "bricks");
 
-	// const planeBufferInfo = twgl.primitives.createPlaneBufferInfo(gl, 10, 10);
-	// const planeUniforms = {
-	// 	texture: blockTextures.birch_planks,
-	// 	modelMatrix: m4.translate(m4.identity(), [0, -1.5, 0])
-	// };
+	// placeBlocks();
 
-	const skyBufferInfo = twgl.createBufferInfoFromArrays(gl, {
-		position: [
-			-1, -1,
-			1, -1,
-			-1, 1,
-			-1, 1,
-			1, -1,
-			1, 1,
-		]
-	});
-	const skyUniforms = {
-		texture: getSkyTexture(gl),
-		modelMatrix: m4.identity()
-	};
+	const skyBufferInfo = twgl.primitives.createXYQuadBufferInfo(gl);
 
+	const sphereBufferInfo = twgl.primitives.createSphereBufferInfo(gl, 0.1, 50, 50);
 	const cubeLinesBufferInfo = twgl.createBufferInfoFromArrays(gl, {
 		position: [
 			-1, -1, -1,
@@ -170,8 +173,8 @@ window.onload = function init() {
 		lightPos: [1.0, 0, 2.0],
 		lightTarget: [0, 0, 0],
 		// viewField: 30,
-		projWidth: 32,
-		projHeight: 32,
+		projWidth: 64,
+		projHeight: 64,
 		bias: -0.019
 	};
 	settings.cameraTarget = v3.add(settings.cameraPos, [5.0, -1.0, -5.0]);
@@ -279,14 +282,6 @@ window.onload = function init() {
 	function drawShadowScene(projMatrix, cameraMatrix, textureMatrix, lightModelMatrix, programInfo) {
 		const viewMatrix = m4.inverse(cameraMatrix);
 
-		gl.useProgram(skyboxProgramInfo.program);
-		twgl.setUniforms(skyboxProgramInfo, {
-			viewProjInverse: m4.inverse(m4.multiply(viewMatrix, projMatrix))
-		});
-		twgl.setBuffersAndAttributes(gl, skyboxProgramInfo, skyBufferInfo);
-		twgl.setUniforms(skyboxProgramInfo, skyUniforms);
-		twgl.drawBufferInfo(gl, skyBufferInfo);
-
 		twgl.setBuffersAndAttributes(gl, programInfo, cubeBufferInfo);
 
 		gl.useProgram(programInfo.program);
@@ -313,12 +308,16 @@ window.onload = function init() {
 	function drawScene(projMatrix, cameraMatrix, textureMatrix, lightModelMatrix) {
 		const viewMatrix = m4.inverse(cameraMatrix);
 
+		let viewDirMatrix = m4.copy(viewMatrix)
+		viewDirMatrix[12] = 0;
+		viewDirMatrix[13] = 0;
+		viewDirMatrix[14] = 0;
 		gl.useProgram(skyboxProgramInfo.program);
 		twgl.setUniforms(skyboxProgramInfo, {
-			viewProjInverse: m4.inverse(m4.multiply(viewMatrix, projMatrix))
+			texture: skyTexture,
+			viewProjInverse: m4.inverse(m4.multiply(projMatrix, viewDirMatrix))
 		});
 		twgl.setBuffersAndAttributes(gl, skyboxProgramInfo, skyBufferInfo);
-		twgl.setUniforms(skyboxProgramInfo, skyUniforms);
 		twgl.drawBufferInfo(gl, skyBufferInfo);
 
 		
@@ -337,6 +336,28 @@ window.onload = function init() {
 			twgl.drawBufferInfo(gl, cubeBufferInfo);
 		});
 
+		const lineBufferInfo = twgl.createBufferFromArray(gl, {
+			position: [
+				settings.cameraPos[0], settings.cameraPos[1], settings.cameraPos[2], 1.0,
+				settings.cameraTarget[0], settings.cameraTarget[1], settings.cameraTarget[2], 1.0
+			]
+		});
+		gl.useProgram(testProgramInfo.program);
+		twgl.setUniforms(testProgramInfo, {
+			viewMatrix: viewMatrix,
+			projMatrix: projMatrix,
+			modelMatrix: m4.translate(m4.identity(), settings.cameraTarget)
+		});
+		twgl.setBuffersAndAttributes(gl, testProgramInfo, sphereBufferInfo);
+		twgl.drawBufferInfo(gl, sphereBufferInfo);
+		gl.lineWidth(5);
+		twgl.setUniforms(testProgramInfo, {
+			viewMatrix: viewMatrix,
+			projMatrix: projMatrix,
+			modelMatrix: m4.identity()
+		});
+		twgl.setBuffersAndAttributes(gl, testProgramInfo, lineBufferInfo);
+		twgl.drawBufferInfo(gl, lineBufferInfo, gl.LINES);
 	}
 
 	function initEventListeners() {
@@ -454,17 +475,45 @@ window.onload = function init() {
 		}
 	}
 
+	function getPhi(vec) {
+		const x = vec[0];
+		const y = vec[1];
+		const z = vec[2];
+		const tanPhi = Math.sqrt(x*x + z*z) / y;
+		return Math.atan(tanPhi);
+	}
+
+	function getTheta(vec) {
+		const x = vec[0];
+		const z = vec[2];
+		const tanTheta = z / x;
+		return Math.atan(tanTheta);
+	}
+
 	function updateCameraDir(speed) {
-		let direction = v3.subtract(settings.cameraTarget, settings.cameraPos);
-		// direction[1] = 0.0;
-		direction = v3.cross(direction, [0, 1, 0]);
-		direction = v3.mulScalar(v3.normalize(direction), speed*1.5);
+		// const theta = getTheta(dirVec);
+		// let tho = getPhi(dirVec);
+
+		if(!(upPressed || downPressed || rightPressed || leftPressed)) return;
+		const dirVec = v3.subtract(settings.cameraTarget, settings.cameraPos);
+
+		let direction;
+		direction = v3.cross(dirVec, [0, 1, 0]);
+		direction = v3.normalize(direction);
+		direction[1] = 0;
 		if (rightPressed) {
+			direction = v3.mulScalar(direction, speed*1.5);
 			v3.add(settings.cameraTarget, direction, settings.cameraTarget);
+			return;
 		}
 		if (leftPressed) {
+			direction = v3.mulScalar(direction, speed*1.5);
 			v3.subtract(settings.cameraTarget, direction, settings.cameraTarget);
+			return;
 		}
+
+
+		const vecLength = v3.length(dirVec);
 		direction = [0, speed, 0];
 		if (upPressed) {
 			v3.add(settings.cameraTarget, direction, settings.cameraTarget);

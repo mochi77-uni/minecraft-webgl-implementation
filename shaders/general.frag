@@ -5,6 +5,7 @@ varying vec3 f_normal;
 varying vec2 f_texcoord;
 varying vec4 f_projectedTexcoord;
 varying vec3 f_lightDir;
+varying float f_fogDepth;
 
 uniform sampler2D texture;
 uniform sampler2D projectedTexture;
@@ -21,8 +22,8 @@ void main() {
     float opacity = 0.4;
     float shadows = 0.0;
     float texelSize = 1.0/1024.0;
-    for(float y = -3.5; y <= 1.5; y += 1.0) {
-        for(float x = -3.5; x <= 1.5; x += 1.0) {
+    for(float y = -3.5; y <= 3.5; y += 1.0) {
+        for(float x = -3.5; x <= 3.5; x += 1.0) {
             vec4 projectedDepth = texture2D(projectedTexture, projectedTexcoord.xy + vec2(x, y) * texelSize);
             shadows += (inRange && projectedDepth.x <= currentDepth) ? 0.0 : 1.0;
         }
@@ -43,5 +44,6 @@ void main() {
 
     // set the actual fragment color
     vec4 texcolor = texture2D(texture, f_texcoord);
-    gl_FragColor = vec4(light * texcolor.rgb, texcolor.a);
+    float fogAmount = smoothstep(0.0, 64.0, f_fogDepth);
+    gl_FragColor = mix(vec4(light * texcolor.rgb, texcolor.a), vec4(0.5, 0.7, 1.0, 0.0), fogAmount);
 }

@@ -13,6 +13,7 @@ varying vec2 f_texcoord;
 varying vec4 f_projectedTexcoord;
 varying vec3 f_normal;
 varying vec3 f_lightDir;
+varying float f_fogDepth;
 
 void main() {
     vec4 worldPosition = modelMatrix * a_position;
@@ -20,6 +21,7 @@ void main() {
     f_projectedTexcoord = texMatrix * worldPosition;
     f_normal = mat3(modelMatrix) * a_normal;
     f_lightDir = normalize(lightPos - worldPosition.xyz);
+    f_fogDepth = -(viewMatrix * worldPosition).z;
 
     gl_Position = projMatrix * viewMatrix * worldPosition;
 }

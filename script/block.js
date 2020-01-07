@@ -1,5 +1,6 @@
 
 let blocksUniformList = [];
+let blockPosition = new HashTable();
 let blockTextures, bumpTextures;
 
 
@@ -14,15 +15,19 @@ function getNameById(object, value) {
 }
 
 function placeBlock(x, y, z, id) {
+    if(blockPosition.getItem([x, y, z])) {
+        console.log('OCCUPIED');
+        return;
+    }
     const name = (typeof id === "string") ? id : getNameById(blockIdList, id);
-    const isCubemap = cubeMapBlocksList.includes(name)
+    const isCubemap = cubeMapBlocksList.includes(name);
     blocksUniformList.push({
         texture: blockTextures[name],
         bumpTexture: bumpTextures[name],
         modelMatrix: m4.translate(m4.identity(), [x, y, z]),
         isCubemap: isCubemap
     });
-    // console.log(blocksUniformList)
+    blockPosition.setItem([x, y, z], true);
 }
 
 const blockIdList = {
