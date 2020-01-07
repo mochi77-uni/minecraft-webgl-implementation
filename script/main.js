@@ -14,16 +14,17 @@ function createProgramInfo(gl, vShaderSrc, fShaderSrc) {
 	};
 }
 
+let AKeyPressed, DKeyPressed, WKeyPressed, SKeyPressed;
 let leftPressed, rightPressed, upPressed, downPressed;
 let spacePressed, shiftPressed;
 
 let mousePressed;
 let lastX, lastY;
 
-window.onload = function init() {
-	const v3 = twgl.v3;
-	const m4 = twgl.m4;
+const v3 = twgl.v3;
+const m4 = twgl.m4;
 
+window.onload = function init() {
 	const canvas = document.getElementById("gl-canvas");
 	const gl = WebGLUtils.setupWebGL(canvas, null);
 
@@ -37,12 +38,13 @@ window.onload = function init() {
 	twgl.setDefaults({attribPrefix: 'a_'});
 
 	const generalProgramInfo = createProgramInfo(gl, "shaders/general.vert", "shaders/general.frag");
+	// const generalCubeProgramInfo = createProgramInfo(gl, "shaders/general_cube.vert", "shaders/general_cube.frag");
 	const shadowProgramInfo = createProgramInfo(gl, "shaders/shadow.vert", "shaders/shadow.frag");
 	const skyboxProgramInfo = createProgramInfo(gl, "shaders/skybox.vert", "shaders/skybox.frag");
 	console.log(generalProgramInfo, shadowProgramInfo);
 
 	// create depth texture for shadow
-	const depthTextureSize = 512;
+	const depthTextureSize = 1024;
 	const depthTexture = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, depthTexture);
 	gl.texImage2D(
@@ -84,28 +86,38 @@ window.onload = function init() {
 	});
 	console.log("checkerboardTexture\n", checkerboardTexture);
 
-
-	const blockTextures = getBlockTextures(gl);
-	const bumpTextures = getBumpTextures(gl);
+	initBlocksTextures(gl);
 
 	// create cube buffer
 	const cubeBufferInfo = twgl.primitives.createCubeBufferInfo(gl, 1);
-	const cubeUniforms = {
-		texture: blockTextures.bricks,
-		bumpTexture: bumpTextures.bricks,
-		modelMatrix: m4.identity()
-	};
-	const cube2Uniforms = {
-		texture: blockTextures.dirt,
-		bumpTexture: bumpTextures.dirt,
-		modelMatrix: m4.translate(m4.identity(), [1, -1, 0])
-	};
 
-	const planeBufferInfo = twgl.primitives.createPlaneBufferInfo(gl, 10, 10);
-	const planeUniforms = {
-		texture: blockTextures.birch_planks,
-		modelMatrix: m4.translate(m4.identity(), [0, -1.5, 0])
-	};
+
+	for(let i = -8; i < 8; i++)
+		for(let j = -8; j < 8; j++) {
+			if(i*i + j*j <= 64.0) {
+				placeBlock(i, -5, j, "grass_block");
+				placeBlock(i, -6, j, "dirt");
+			}
+		}
+
+	for(let i = 0; i < 6; i++)
+		placeBlock(-3, -4+i, -3, "oak_log");
+
+	for(let i = -5; i < 5; i++)
+		for(let j = -5; j < 5; j++)
+			for(let k = -5; k < 5; k++)
+				if( i*i + j*j + k*k + 0.5*i*j - 0.1*j*k + 0.5*i*k<= 9.0 )
+					placeBlock(i-3, j+3, k-3, "spruce_leaves");
+	for(let i = -2; i < 2; i++)
+		for(let j = -2; j < 2; j++)
+			for(let k = -2; k < 2; k++)
+					placeBlock(i+3, j, k+3, "bricks");
+
+	// const planeBufferInfo = twgl.primitives.createPlaneBufferInfo(gl, 10, 10);
+	// const planeUniforms = {
+	// 	texture: blockTextures.birch_planks,
+	// 	modelMatrix: m4.translate(m4.identity(), [0, -1.5, 0])
+	// };
 
 	const skyBufferInfo = twgl.createBufferInfoFromArrays(gl, {
 		position: [
@@ -152,16 +164,19 @@ window.onload = function init() {
 	});
 
 	const settings = {
-		cameraPos: [2.5, 1.0, -1.0],
+		cameraPos: [0.0, 5.0, 0.0],
 		cameraTarget: [0, 0, 0],
 		cameraUp: [0, 1, 0],
-		lightPos: [1.0, 15, 1.0],
+		lightPos: [1.0, 0, 2.0],
 		lightTarget: [0, 0, 0],
-		viewField: 30,
-		projWidth: 5,
-		projHeight: 5,
-		bias: -0.035
+		// viewField: 30,
+		projWidth: 32,
+		projHeight: 32,
+		bias: -0.019
 	};
+	settings.cameraTarget = v3.add(settings.cameraPos, [5.0, -1.0, -5.0]);
+	settings.lightPos = v3.add(settings.cameraPos, [5.0, 15.0, -5.0]);
+	// settings.lightTarget = v3.subtract(settings.cameraPos, [0.0, 20.0, 0.0]);
 
 	webglLessonsUI.setupUI(document.querySelector('#ui'), settings, [
 		{type: 'slider', key: 'bias', min: -0.1, max: 0.0001, precision: 4, step: 0.0001},
@@ -169,15 +184,10 @@ window.onload = function init() {
 		{type: 'slider', key: 'projWidth', min: 0, max: 10, precision: 4, step: 0.0001},
 		{type: 'slider', key: 'projHeight', min: 0, max: 10, precision: 4, step: 0.0001},
 	]);
-	webglLessonsUI.setupUI(document.querySelector('#ui'), settings.cameraPos, [
-		{type: 'slider', key: '0', min: -10, max: 10, precision: 4, step: 0.0001},
-		{type: 'slider', key: '1', min: -10, max: 10, precision: 4, step: 0.0001},
-		{type: 'slider', key: '2', min: -10, max: 10, precision: 4, step: 0.0001},
-	]);
 	webglLessonsUI.setupUI(document.querySelector('#ui'), settings.cameraTarget, [
-		{type: 'slider', key: '0', min: -10, max: 10, precision: 4, step: 0.0001},
-		{type: 'slider', key: '1', min: -10, max: 10, precision: 4, step: 0.0001},
-		{type: 'slider', key: '2', min: -10, max: 10, precision: 4, step: 0.0001},
+		{type: 'slider', key: '0', min: -50, max: 50, precision: 4, step: 0.0001},
+		{type: 'slider', key: '1', min: -50, max: 50, precision: 4, step: 0.0001},
+		{type: 'slider', key: '2', min: -50, max: 50, precision: 4, step: 0.0001},
 	]);
 	webglLessonsUI.setupUI(document.querySelector('#ui2'), settings.lightPos, [
 		{type: 'slider', key: '0', min: -10, max: 10, precision: 4, step: 0.0001},
@@ -195,7 +205,8 @@ window.onload = function init() {
 
 	function render() {
 		twgl.resizeCanvasToDisplaySize(gl.canvas);
-		updateCamera();
+		updateCamera(0.1);
+		updateCameraDir(0.2);
 
 		gl.enable(gl.CULL_FACE);
 		gl.enable(gl.DEPTH_TEST);
@@ -216,12 +227,13 @@ window.onload = function init() {
 			settings.projWidth / 2,
 			-settings.projHeight / 2,
 			settings.projHeight / 2,
-			0.5, 30
+			0.5, 50
 		);
 		gl.bindFramebuffer(gl.FRAMEBUFFER, depthFrameBuffer);
 		gl.viewport(0, 0, depthTextureSize, depthTextureSize);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-		drawScene(lightProjMatrix, lightModelMatrix, m4.identity(), lightModelMatrix, shadowProgramInfo);
+		// gl.cullFace(gl.FRONT);
+		drawShadowScene(lightProjMatrix, lightModelMatrix, m4.identity(), lightModelMatrix, shadowProgramInfo);
 
 		/*  Draw scene to the main frame buffer */
 		let textureMatrix = m4.identity();
@@ -242,6 +254,7 @@ window.onload = function init() {
 		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 		gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
 		gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+		gl.cullFace(gl.BACK);
 		drawScene(cameraProjMatrix, cameraModelMatrix, textureMatrix, lightModelMatrix, generalProgramInfo);
 
 		{
@@ -263,7 +276,7 @@ window.onload = function init() {
 		requestAnimationFrame(render);
 	}
 
-	function drawScene(projMatrix, cameraMatrix, textureMatrix, lightModelMatrix, programInfo) {
+	function drawShadowScene(projMatrix, cameraMatrix, textureMatrix, lightModelMatrix, programInfo) {
 		const viewMatrix = m4.inverse(cameraMatrix);
 
 		gl.useProgram(skyboxProgramInfo.program);
@@ -287,15 +300,43 @@ window.onload = function init() {
 		});
 
 		twgl.setBuffersAndAttributes(gl, programInfo, cubeBufferInfo);
-		twgl.setUniforms(programInfo, cubeUniforms);
-		twgl.drawBufferInfo(gl, cubeBufferInfo);
+		blocksUniformList.forEach(function(item, index) {
+			twgl.setUniforms(programInfo, item);
+			twgl.drawBufferInfo(gl, cubeBufferInfo);
+		});
 
-		twgl.setUniforms(programInfo, cube2Uniforms);
-		twgl.drawBufferInfo(gl, cubeBufferInfo);
+		// twgl.setBuffersAndAttributes(gl, programInfo, planeBufferInfo);
+		// twgl.setUniforms(programInfo, planeUniforms);
+		// twgl.drawBufferInfo(gl, planeBufferInfo);
+	}
 
-		twgl.setBuffersAndAttributes(gl, programInfo, planeBufferInfo);
-		twgl.setUniforms(programInfo, planeUniforms);
-		twgl.drawBufferInfo(gl, planeBufferInfo);
+	function drawScene(projMatrix, cameraMatrix, textureMatrix, lightModelMatrix) {
+		const viewMatrix = m4.inverse(cameraMatrix);
+
+		gl.useProgram(skyboxProgramInfo.program);
+		twgl.setUniforms(skyboxProgramInfo, {
+			viewProjInverse: m4.inverse(m4.multiply(viewMatrix, projMatrix))
+		});
+		twgl.setBuffersAndAttributes(gl, skyboxProgramInfo, skyBufferInfo);
+		twgl.setUniforms(skyboxProgramInfo, skyUniforms);
+		twgl.drawBufferInfo(gl, skyBufferInfo);
+
+		
+		blocksUniformList.forEach(function(item, index) {
+			gl.useProgram(generalProgramInfo.program);
+			twgl.setBuffersAndAttributes(gl, generalProgramInfo, cubeBufferInfo);
+			twgl.setUniforms(generalProgramInfo, {
+				viewMatrix: viewMatrix,
+				projMatrix: projMatrix,
+				texMatrix: textureMatrix,
+				projectedTexture: depthTexture,
+				lightPos: settings.lightPos,
+				bias: settings.bias
+			});
+			twgl.setUniforms(generalProgramInfo, item);
+			twgl.drawBufferInfo(gl, cubeBufferInfo);
+		});
+
 	}
 
 	function initEventListeners() {
@@ -307,32 +348,48 @@ window.onload = function init() {
 	}
 
 	function keyDownHandler(e) {
-		if (e.code === "KeyA" || e.key === "ArrowLeft")
+		if (e.code === "KeyA")
+			AKeyPressed = true;
+		else if(e.code === "KeyD")
+			DKeyPressed = true;
+		else if(e.code === "KeyW")
+			WKeyPressed = true;
+		else if(e.code === "KeyS")
+			SKeyPressed = true;
+		else if(e.key === "ArrowLeft")
 			leftPressed = true;
-		else if (e.code === "KeyD" || e.key === "ArrowRight")
+		else if(e.key === "ArrowRight")
 			rightPressed = true;
-		else if (e.code === "KeyW" || e.key === "ArrowUp")
+		else if(e.key === "ArrowUp")
 			upPressed = true;
-		else if (e.code === "KeyS" || e.key === "ArrowDown")
+		else if(e.key === "ArrowDown")
 			downPressed = true;
-		else if (e.code === "Space")
+		else if(e.code === "Space")
 			spacePressed = true;
-		else if (e.code === "ShiftLeft")
+		else if(e.code === "ShiftLeft")
 			shiftPressed = true;
 	}
 
 	function keyUpHandler(e) {
-		if (e.code === "KeyA" || e.key === "ArrowLeft")
+		if (e.code === "KeyA")
+			AKeyPressed = false;
+		else if(e.code === "KeyD")
+			DKeyPressed = false;
+		else if(e.code === "KeyW")
+			WKeyPressed = false;
+		else if(e.code === "KeyS")
+			SKeyPressed = false;
+		else if(e.key === "ArrowLeft")
 			leftPressed = false;
-		else if (e.code === "KeyD" || e.key === "ArrowRight")
+		else if(e.key === "ArrowRight")
 			rightPressed = false;
-		else if (e.code === "KeyW" || e.key === "ArrowUp")
+		else if(e.key === "ArrowUp")
 			upPressed = false;
-		else if (e.code === "KeyS" || e.key === "ArrowDown")
+		else if(e.key === "ArrowDown")
 			downPressed = false;
-		else if (e.code === "Space")
+		else if(e.code === "Space")
 			spacePressed = false;
-		else if (e.code === "ShiftLeft")
+		else if(e.code === "ShiftLeft")
 			shiftPressed = false;
 	}
 
@@ -353,35 +410,67 @@ window.onload = function init() {
 		}
 	}
 
-	function updateCamera() {
+	function updateCamera(speed) {
 		let direction = v3.subtract(settings.cameraTarget, settings.cameraPos);
 		direction[1] = 0.0;
-		direction = v3.mulScalar(v3.normalize(direction), 0.1);
-		if (upPressed) {
+		direction = v3.mulScalar(v3.normalize(direction), speed);
+		if (WKeyPressed) {
 			v3.add(settings.cameraPos, direction, settings.cameraPos);
 			v3.add(settings.cameraTarget, direction, settings.cameraTarget);
+			v3.add(settings.lightPos, direction, settings.lightPos);
+			v3.add(settings.lightTarget, direction, settings.lightTarget);
 		}
-		if (downPressed) {
+		if (SKeyPressed) {
 			v3.subtract(settings.cameraPos, direction, settings.cameraPos);
 			v3.subtract(settings.cameraTarget, direction, settings.cameraTarget);
+			v3.subtract(settings.lightPos, direction, settings.lightPos);
+			v3.subtract(settings.lightTarget, direction, settings.lightTarget);
 		}
 		direction = v3.cross(direction, [0, 1, 0]);
-		if (rightPressed) {
+		if (DKeyPressed) {
 			v3.add(settings.cameraPos, direction, settings.cameraPos);
+			v3.add(settings.cameraTarget, direction, settings.cameraTarget);
+			v3.add(settings.lightPos, direction, settings.lightPos);
+			v3.add(settings.lightTarget, direction, settings.lightTarget);
+		}
+		if (AKeyPressed) {
+			v3.subtract(settings.cameraPos, direction, settings.cameraPos);
+			v3.subtract(settings.cameraTarget, direction, settings.cameraTarget);
+			v3.subtract(settings.lightPos, direction, settings.lightPos);
+			v3.subtract(settings.lightTarget, direction, settings.lightTarget);
+		}
+		const up = [0, speed, 0];
+		if (spacePressed) {
+			v3.add(settings.cameraPos, up, settings.cameraPos);
+			v3.add(settings.cameraTarget, up, settings.cameraTarget);
+			v3.add(settings.lightPos, up, settings.lightPos);
+			v3.add(settings.lightTarget, up, settings.lightTarget);
+		}
+		if (shiftPressed){
+			v3.subtract(settings.cameraPos, up, settings.cameraPos);
+			v3.subtract(settings.cameraTarget, up, settings.cameraTarget);
+			v3.subtract(settings.lightPos, up, settings.lightPos);
+			v3.subtract(settings.lightTarget, up, settings.lightTarget);
+		}
+	}
+
+	function updateCameraDir(speed) {
+		let direction = v3.subtract(settings.cameraTarget, settings.cameraPos);
+		// direction[1] = 0.0;
+		direction = v3.cross(direction, [0, 1, 0]);
+		direction = v3.mulScalar(v3.normalize(direction), speed*1.5);
+		if (rightPressed) {
 			v3.add(settings.cameraTarget, direction, settings.cameraTarget);
 		}
 		if (leftPressed) {
-			v3.subtract(settings.cameraPos, direction, settings.cameraPos);
 			v3.subtract(settings.cameraTarget, direction, settings.cameraTarget);
 		}
-
-		if (spacePressed) {
-			v3.add(settings.cameraPos, [0, 0.1, 0], settings.cameraPos);
-			v3.add(settings.cameraTarget, [0, 0.1, 0], settings.cameraTarget);
+		direction = [0, speed, 0];
+		if (upPressed) {
+			v3.add(settings.cameraTarget, direction, settings.cameraTarget);
 		}
-		if (shiftPressed){
-			v3.subtract(settings.cameraPos, [0, 0.1, 0], settings.cameraPos);
-			v3.subtract(settings.cameraTarget, [0, 0.1, 0], settings.cameraTarget);
+		if (downPressed) {
+			v3.subtract(settings.cameraTarget, direction, settings.cameraTarget);
 		}
 	}
 };
