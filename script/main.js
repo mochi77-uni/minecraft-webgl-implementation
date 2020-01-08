@@ -34,7 +34,7 @@ function Mat4multVec3(v, m) {
 
 let AKeyPressed, DKeyPressed, WKeyPressed, SKeyPressed;
 let leftPressed, rightPressed, upPressed, downPressed;
-let spacePressed, shiftPressed;
+let spacePressed, shiftPressed, equalPressed, minusPressed;
 
 let mousePressed;
 let lastX, lastY;
@@ -45,6 +45,21 @@ const m4 = twgl.m4;
 let time = 0.0;
 
 window.onload = function init() {
+
+	/** initialization for gl utilities and event listeners **/
+	const canvas = document.getElementById("gl-canvas");
+	const gl = WebGLUtils.setupWebGL(canvas, null);
+	if (!gl) {
+		alert("Could not locate depth texture extension")
+	}
+	const ext = gl.getExtension("WEBGL_depth_texture");
+	if (!ext) {
+		alert("Could not locate depth texture extension")
+	}
+	initEventListeners();
+	twgl.setDefaults({attribPrefix: 'a_'});
+
+	/** setup element nods for coordinate display **/
 	const xDisplayElm = document.getElementById("x-display");
 	const yDisplayElm = document.getElementById("y-display");
 	const zDisplayElm = document.getElementById("z-display");
@@ -57,25 +72,14 @@ window.onload = function init() {
 	yDisplayElm.appendChild(yDisplayNode);
 	zDisplayElm.appendChild(zDisplayNode);
 
-	const canvas = document.getElementById("gl-canvas");
-	const gl = WebGLUtils.setupWebGL(canvas, null);
-
-	const ext = gl.getExtension("WEBGL_depth_texture");
-	if (!ext) {
-		alert("Could not locate depth texture extension")
-	}
-	console.log(ext);
-
-	initEventListeners();
-	twgl.setDefaults({attribPrefix: 'a_'});
-
+	/** setup all the programInfos would be used **/
 	const generalProgramInfo = createProgramInfo(gl, "shaders/general.vert", "shaders/general.frag");
 	const shadowProgramInfo = createProgramInfo(gl, "shaders/shadow.vert", "shaders/shadow.frag");
 	const skyboxProgramInfo = createProgramInfo(gl, "shaders/skybox.vert", "shaders/skybox.frag");
 	const testProgramInfo = createProgramInfo(gl, "shaders/test.vert", "shaders/test.frag");
 	console.log(generalProgramInfo, shadowProgramInfo);
 
-	// create depth texture for shadow
+	/** create depth texture for shadow map**/
 	const depthTextureSize = 2048;
 	const depthTexture = gl.createTexture();
 	gl.bindTexture(gl.TEXTURE_2D, depthTexture);
@@ -95,6 +99,7 @@ window.onload = function init() {
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
+	/** create depth frame buffer for shadow map **/
 	const depthFrameBuffer = gl.createFramebuffer();
 	gl.bindFramebuffer(gl.FRAMEBUFFER, depthFrameBuffer);
 	gl.framebufferTexture2D(
@@ -105,7 +110,7 @@ window.onload = function init() {
 		0                // mip level
 	);
 
-	// create checkerboard texture for testing
+	/** create checkerboard texture for testing **/
 	const checkerboardTexture = twgl.createTexture(gl, {
 		min: gl.NEAREST,
 		mag: gl.NEAREST,
@@ -116,15 +121,14 @@ window.onload = function init() {
 			255, 255, 255, 255,
 		],
 	});
-	console.log("checkerboardTexture\n", checkerboardTexture);
 
-	initBlocksTextures(gl);
+	/** setup normal textures and bump textures **/
+	const localBlockTextures = getBlockTextures(gl);
+	const localBumpTextures = getBumpTextures(gl);
 	const skyTexture = getSkyTexture(gl);
 
-	// create cube buffer
-	const cubeBufferInfo = twgl.primitives.createCubeBufferInfo(gl, 1);
-
-
+	/** use local textures and place blocks for testing **/
+	useTextures(localBlockTextures, localBumpTextures, checkerboardTexture);
 	for(let i = -8; i < 8; i++)
 		for(let j = -8; j < 8; j++) {
 			if(i*i + j*j <= 64.0) {
@@ -147,8 +151,9 @@ window.onload = function init() {
 					placeBlock(i+3, j, k+3, "bricks");
 	placeBlockByMap("field");
 
+	/** create buffer infos **/
 	const skyBufferInfo = twgl.primitives.createXYQuadBufferInfo(gl);
-
+	const cubeBufferInfo = twgl.primitives.createCubeBufferInfo(gl, 1);
 	const sphereBufferInfo = twgl.primitives.createSphereBufferInfo(gl, 0.1, 50, 50);
 	const cubeLinesBufferInfo = twgl.createBufferInfoFromArrays(gl, {
 		position: [
@@ -179,45 +184,32 @@ window.onload = function init() {
 		],
 	});
 
+	/** settings and create slider for adjustment **/
 	const settings = {
 		cameraPos: [0.0, 1.8, 0.0],
 		cameraTarget: [0, 0, 0],
 		cameraUp: [0, 1, 0],
 		lightPos: [1.0, 0, 2.0],
 		lightTarget: [0, 0, 0],
-		// viewField: 30,
 		projWidth: 64,
-		projHeight: 64,
+		projHeight: 64,	/** for orthogonal shadow map setup **/
+		viewField: 30,	/** for perspective shadow map setup **/
 		bias: -0.006
 	};
 	settings.cameraTarget = v3.add(settings.cameraPos, [-5.0, 0.0, 0.0]);
 	settings.lightPos = v3.add(settings.cameraPos, [5.0, 15.0, -5.0]);
-	// settings.lightTarget = v3.subtract(settings.cameraPos, [0.0, 20.0, 0.0]);
-
 	webglLessonsUI.setupUI(document.querySelector('#ui'), settings, [
 		{type: 'slider', key: 'bias', min: -0.1, max: 0.0001, precision: 4, step: 0.0001},
 		{type: 'slider', key: 'viewField', min: 0, max: 90, precision: 4, step: 0.0001},
 		{type: 'slider', key: 'projWidth', min: 0, max: 10, precision: 4, step: 0.0001},
 		{type: 'slider', key: 'projHeight', min: 0, max: 10, precision: 4, step: 0.0001},
 	]);
-	webglLessonsUI.setupUI(document.querySelector('#ui'), settings.cameraTarget, [
-		{type: 'slider', key: '0', min: -50, max: 50, precision: 4, step: 0.0001},
-		{type: 'slider', key: '1', min: -50, max: 50, precision: 4, step: 0.0001},
-		{type: 'slider', key: '2', min: -50, max: 50, precision: 4, step: 0.0001},
-	]);
-	webglLessonsUI.setupUI(document.querySelector('#ui2'), settings.lightPos, [
-		{type: 'slider', key: '0', min: -10, max: 10, precision: 4, step: 0.0001},
-		{type: 'slider', key: '1', min: -10, max: 10, precision: 4, step: 0.0001},
-		{type: 'slider', key: '2', min: -10, max: 10, precision: 4, step: 0.0001},
-	]);
-	webglLessonsUI.setupUI(document.querySelector('#ui2'), settings.lightTarget, [
-		{type: 'slider', key: '0', min: -10, max: 10, precision: 4, step: 0.0001},
-		{type: 'slider', key: '1', min: -10, max: 10, precision: 4, step: 0.0001},
-		{type: 'slider', key: '2', min: -10, max: 10, precision: 4, step: 0.0001},
-	]);
 
 	initSubCanvas();
+
 	render();
+
+	/** function for rendering canvas **/
 
 	function render() {
 		twgl.resizeCanvasToDisplaySize(gl.canvas);
@@ -381,20 +373,14 @@ window.onload = function init() {
 		time += 0.05;
 	}
 
+	/** functions for key and mouse callback **/
+
 	function initEventListeners() {
 		document.addEventListener('keydown', keyDownHandler);
 		document.addEventListener('keyup', keyUpHandler);
 		document.addEventListener('mousedown', keyMouseDownHandler);
 		document.addEventListener('mouseup', keyMouseUpHandler);
 		document.addEventListener('mousemove', keyMouseMoveHandler);
-	}
-
-	function getBlockCoord(pos) {
-		let coord = [0.0, 0.0, 0.0]
-		for(let i = 0; i < 3; i++) {
-			coord[i] = Math.floor(pos[i] + 0.5);
-		}
-		return coord;
 	}
 
 	function keyDownHandler(e) {
@@ -414,6 +400,10 @@ window.onload = function init() {
 			upPressed = true;
 		else if(e.key === "ArrowDown")
 			downPressed = true;
+		else if(e.code === "Equal")
+			equalPressed = true;
+		else if(e.code === "Minus")
+			minusPressed = true;
 		else if(e.code === "Space")
 			spacePressed = true;
 		else if(e.code === "ShiftLeft")
@@ -432,6 +422,7 @@ window.onload = function init() {
 		}
 		else if(e.code === "KeyE") {
 			const coord = getBlockCoord(settings.cameraTarget);
+			useTextures(localBlockTextures, localBumpTextures, checkerboardTexture);
 			replaceBlock(coord[0], coord[1], coord[2], "grass_block");
 		}
 	}
@@ -453,6 +444,10 @@ window.onload = function init() {
 			upPressed = false;
 		else if(e.key === "ArrowDown")
 			downPressed = false;
+		else if(e.code === "Equal")
+			equalPressed = false;
+		else if(e.code === "Minus")
+			minusPressed = false;
 		else if(e.code === "Space")
 			spacePressed = false;
 		else if(e.code === "ShiftLeft")
@@ -473,6 +468,46 @@ window.onload = function init() {
 		// let xpos = h
 		if(mousePressed) {
 			// float x
+		}
+	}
+
+	/** functions for updating camera position and target **/
+
+	function updateCameraDir(speed) {
+		// if(!(upPressed || downPressed || rightPressed || leftPressed)) return;
+		const dirVec = v3.subtract(settings.cameraTarget, settings.cameraPos);
+		let direction;
+
+		direction = v3.mulScalar(v3.normalize(dirVec), speed * 2);
+		if(v3.length(v3.subtract(settings.cameraTarget, settings.cameraPos)) >= 2.0) {
+			if (equalPressed) {
+				v3.add(settings.cameraTarget, direction, settings.cameraTarget);
+			}
+			if (minusPressed) {
+				v3.subtract(settings.cameraTarget, direction, settings.cameraTarget);
+			}
+		} else v3.add(settings.cameraTarget, direction, settings.cameraTarget);
+		direction = v3.cross(dirVec, [0, 1, 0]);
+		direction = v3.normalize(direction);
+		direction[1] = 0;
+		if (rightPressed) {
+			direction = v3.mulScalar(direction, speed*1.5);
+			v3.add(settings.cameraTarget, direction, settings.cameraTarget);
+			return;
+		}
+		if (leftPressed) {
+			direction = v3.mulScalar(direction, speed*1.5);
+			v3.subtract(settings.cameraTarget, direction, settings.cameraTarget);
+			return;
+		}
+
+		const vecLength = v3.length(dirVec);
+		direction = [0, speed, 0];
+		if (upPressed) {
+			v3.add(settings.cameraTarget, direction, settings.cameraTarget);
+		}
+		if (downPressed) {
+			v3.subtract(settings.cameraTarget, direction, settings.cameraTarget);
 		}
 	}
 
@@ -520,6 +555,16 @@ window.onload = function init() {
 		}
 	}
 
+	/** utility functions **/
+
+	function getBlockCoord(pos) {
+		let coord = [0.0, 0.0, 0.0]
+		for(let i = 0; i < 3; i++) {
+			coord[i] = Math.floor(pos[i] + 0.5);
+		}
+		return coord;
+	}
+
 	function getPhi(vec) {
 		const x = vec[0];
 		const y = vec[1];
@@ -533,38 +578,5 @@ window.onload = function init() {
 		const z = vec[2];
 		const tanTheta = z / x;
 		return Math.atan(tanTheta);
-	}
-
-	function updateCameraDir(speed) {
-		// const theta = getTheta(dirVec);
-		// let tho = getPhi(dirVec);
-
-		if(!(upPressed || downPressed || rightPressed || leftPressed)) return;
-		const dirVec = v3.subtract(settings.cameraTarget, settings.cameraPos);
-
-		let direction;
-		direction = v3.cross(dirVec, [0, 1, 0]);
-		direction = v3.normalize(direction);
-		direction[1] = 0;
-		if (rightPressed) {
-			direction = v3.mulScalar(direction, speed*1.5);
-			v3.add(settings.cameraTarget, direction, settings.cameraTarget);
-			return;
-		}
-		if (leftPressed) {
-			direction = v3.mulScalar(direction, speed*1.5);
-			v3.subtract(settings.cameraTarget, direction, settings.cameraTarget);
-			return;
-		}
-
-
-		const vecLength = v3.length(dirVec);
-		direction = [0, speed, 0];
-		if (upPressed) {
-			v3.add(settings.cameraTarget, direction, settings.cameraTarget);
-		}
-		if (downPressed) {
-			v3.subtract(settings.cameraTarget, direction, settings.cameraTarget);
-		}
 	}
 };

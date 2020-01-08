@@ -2,13 +2,17 @@
 "use strict";
 
 function initSubCanvas() {
-    return;
     const canvas = document.getElementById("gl-display-canvas");
     const gl = WebGLUtils.setupWebGL(canvas, null);
     const previewProgramInfo = createProgramInfo(gl, "shaders/preview.vert", "shaders/preview.frag");
     const cubeBufferInfo = twgl.primitives.createCubeBufferInfo(gl, 1);
 
-    initBlocksTextures(gl);
+    /** setup normal textures and bump textures **/
+    const localBlockTextures = getBlockTextures(gl);
+    const localBumpTextures = getBumpTextures(gl);
+    /** use local textures and place blocks for testing **/
+    useTextures(localBlockTextures, localBumpTextures);
+
     render();
 
     function render() {
@@ -53,4 +57,4 @@ function initSubCanvas() {
 
         requestAnimationFrame(render);
     }
-};
+}

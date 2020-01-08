@@ -1,6 +1,12 @@
 
+let blockTextures, bumpTextures, unknownTexture;
 let blocksUniformList = new HashTable();
-let blockTextures, bumpTextures;
+
+function useTextures(localBlockTextures, localBumpTextures, localUnknownTexture) {
+    blockTextures = localBlockTextures;
+    bumpTextures = localBumpTextures;
+    unknownTexture = localUnknownTexture;
+}
 
 function readTextFile(file){
     let rawFile = new XMLHttpRequest();
@@ -38,8 +44,9 @@ function placeBlock(x, y, z, id) {
     }
     const name = (typeof id === "string") ? id : getNameById(blockIdList, id);
     const isCubemap = cubeMapBlocksList.includes(name);
+    const texture = blockTextures[name] || unknownTexture;
     blocksUniformList.setItem([x, y, z], {
-        texture: blockTextures[name],
+        texture: texture,
         bumpTexture: bumpTextures[name],
         modelMatrix: m4.translate(m4.identity(), [x, y, z]),
         isCubemap: isCubemap
@@ -71,10 +78,13 @@ function placeBlockByMap(mapName, offset) {
     const mapLocation = "./map/" + mapName + ".txt";
     const lines = readTextFile(mapLocation).split('\n');
     lines.forEach(function(line) {
-        const words = line.split(' ');
-        const pos = words.slice(0, 4).map(Number);
-        // console.log(pos);
-        placeBlock(pos[0], pos[1], pos[2], pos[3]);
+        if(line !== "") {
+            const words = line.split(' ');
+            console.log(words);
+            const pos = words.slice(0, 4).map(Number);
+            const id = (words.length === 4) ? pos[3] : [pos[3], pos[4]];
+            placeBlock(pos[0], pos[1], pos[2], pos[3]);
+        }
     });
 }
 
@@ -112,7 +122,7 @@ const blockIdList = {
     blue_terracotta: [246, 0],
     oak_leaves: [18, 0],
     blue_wool: [35, 11],
-    oak_log_side: [17, 0],
+    oak_log: [17, 0],
     bricks: [45, 0],
     brown_concrete: [251, 12],
     oak_planks: [5, 0],
