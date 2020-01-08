@@ -43,6 +43,7 @@ const v3 = twgl.v3;
 const m4 = twgl.m4;
 
 let time = 0.0;
+let cooldownTime = -1;
 
 window.onload = function init() {
 
@@ -63,14 +64,28 @@ window.onload = function init() {
 	const xDisplayElm = document.getElementById("x-display");
 	const yDisplayElm = document.getElementById("y-display");
 	const zDisplayElm = document.getElementById("z-display");
+	const cooldownElm = document.getElementById("cooldown-time");
 
 	const xDisplayNode = document.createTextNode("");
 	const yDisplayNode = document.createTextNode("");
 	const zDisplayNode = document.createTextNode("");
+	const cooldownNode = document.createTextNode("");
 
 	xDisplayElm.appendChild(xDisplayNode);
 	yDisplayElm.appendChild(yDisplayNode);
 	zDisplayElm.appendChild(zDisplayNode);
+	cooldownElm.appendChild(cooldownNode);
+
+	/** setup all audios would be used **/
+	const placeBlockAudio = new Audio(`./sound/placeBlock.ogg`);
+	const explosionAudios = new Array(4);
+	for(let i = 1; i <= 4; i++) {
+		explosionAudios[i] = new Audio(`./sound/Explosion${i}.ogg`);
+	}
+	const digBlockAudios = new Array(4);
+	for(let i = 1; i <= 4; i++) {
+		digBlockAudios[i] = new Audio(`./sound/digBlock${i}.ogg`);
+	}
 
 	/** setup all the programInfos would be used **/
 	const generalProgramInfo = createProgramInfo(gl, "shaders/general.vert", "shaders/general.frag");
@@ -149,7 +164,7 @@ window.onload = function init() {
 		for(let j = -2; j < 2; j++)
 			for(let k = -2; k < 2; k++)
 					placeBlock(i+3, j, k+3, "bricks");
-	placeBlockByMap("field");
+	placeBlockByMap("field5", [8, 0, 8]);
 
 	/** create buffer infos **/
 	const skyBufferInfo = twgl.primitives.createXYQuadBufferInfo(gl);
@@ -219,12 +234,18 @@ window.onload = function init() {
 		gl.enable(gl.CULL_FACE);
 		gl.enable(gl.DEPTH_TEST);
 
-		/* update coordinate information */
+		/** update coordinate information **/
 		xDisplayNode.nodeValue = `x: ${settings.cameraPos[0].toFixed(2)}`;
 		yDisplayNode.nodeValue = `y: ${settings.cameraPos[1].toFixed(2)}`;
 		zDisplayNode.nodeValue = `z: ${settings.cameraPos[2].toFixed(2)}`;
+		if(cooldownTime < 0)
+			cooldownNode.nodeValue = "";
+		else {
+			cooldownNode.nodeValue = `Explosion Cooldown: ${cooldownTime.toFixed(2)}s`;
+			cooldownTime -= 0.08;
+		}
 
-		/*  Draw scene to the depth frame buffer */
+		/**  Draw scene to the depth frame buffer **/
 		const lightModelMatrix = m4.lookAt(
 			settings.lightPos,
 			settings.lightTarget,
@@ -248,7 +269,7 @@ window.onload = function init() {
 		// gl.cullFace(gl.FRONT);
 		drawShadowScene(lightProjMatrix, lightModelMatrix, m4.identity(), lightModelMatrix, shadowProgramInfo);
 
-		/*  Draw scene to the main frame buffer */
+		/**  Draw scene to the main frame buffer **/
 		let textureMatrix = m4.identity();
 		textureMatrix = m4.translate(textureMatrix, [0.5, 0.5, 0.5]);
 		textureMatrix = m4.scale(textureMatrix, [0.5, 0.5, 0.5]);
@@ -408,22 +429,46 @@ window.onload = function init() {
 			spacePressed = true;
 		else if(e.code === "ShiftLeft")
 			shiftPressed = true;
+		else if(e.code === "KeyB") {
+			console.log(cooldownTime);
+			if(cooldownTime < 0) {
+				const audioIndex = Math.floor(Math.random() * 4) + 1;
+				explosionAudios[audioIndex].cloneNode(true).play();
+				for (let i = -4; i < 4; i++)
+					for (let j = -4; j < 4; j++)
+						for (let k = -4; k < 4; k++)
+							if (i * i + j * j + k * k <= 12.0) {
+								const x = settings.cameraPos[0] + i;
+								const y = settings.cameraPos[1] + j;
+								const z = settings.cameraPos[2] + k;
+								const coord = getBlockCoord([x, y, z]);
+								if(getBlockName(coord) === 'bedrock') continue;
+								removeBlock(coord[0], coord[1], coord[2]);
+							}
+				cooldownTime = 1.5;
+			}
+		}
 		else if(e.code === "KeyQ") {
-			for(let i = -4; i < 4; i++)
-				for(let j = -4; j < 4; j++)
-					for(let k = -4; k < 4; k++)
-						if( i*i + j*j + k*k <= 9.0 ) {
-							const x = settings.cameraPos[0] + i;
-							const y = settings.cameraPos[1] + j;
-							const z = settings.cameraPos[2] + k;
-							const coord = getBlockCoord([x, y, z]);
-							removeBlock(coord[0], coord[1], coord[2]);
-						}
+			const audioIndex = Math.floor(Math.random() * 4) + 1;
+			digBlockAudios[audioIndex].cloneNode(true).play();
+			const coord = getBlockCoord(settings.cameraTarget);
+			replaceBlock(coord[0], coord[1], coord[2]);
 		}
 		else if(e.code === "KeyE") {
+			placeBlockAudio.cloneNode(true).play();
 			const coord = getBlockCoord(settings.cameraTarget);
+			const blockName = blockNames[selectedBlockIndex % blockNames.length];
 			useTextures(localBlockTextures, localBumpTextures, checkerboardTexture);
-			replaceBlock(coord[0], coord[1], coord[2], "grass_block");
+			replaceBlock(coord[0], coord[1], coord[2], blockName);
+		}
+		else if(e.code === "Digit1") {
+			selectedBlockIndex--;
+			if(selectedBlockIndex < 0)
+				selectedBlockIndex = blockNames.length - 1;
+		}
+		else if(e.code === "Digit3") {
+			selectedBlockIndex++;
+			selectedBlockIndex %= blockNames.length;
 		}
 	}
 
@@ -558,7 +603,7 @@ window.onload = function init() {
 	/** utility functions **/
 
 	function getBlockCoord(pos) {
-		let coord = [0.0, 0.0, 0.0]
+		let coord = [0.0, 0.0, 0.0];
 		for(let i = 0; i < 3; i++) {
 			coord[i] = Math.floor(pos[i] + 0.5);
 		}

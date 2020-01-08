@@ -26,15 +26,14 @@ function readTextFile(file){
     return allText;
 }
 
-function initBlocksTextures(gl) {
-    blockTextures = getBlockTextures(gl);
-    bumpTextures = getBumpTextures(gl);
-    console.log(blockTextures);
-}
-
 function getNameById(object, value) {
     const list = (Number.isInteger(value)) ? [value, 0] : value;
     return Object.keys(object).find(key => object[key][0] === list[0] && object[key][1] === list[1]);
+}
+
+function getBlockName(x, y, z) {
+    const coord = (Array.isArray(x)) ? x : [x, y, z];
+    return blocksUniformList.hasItem(coord) ? blocksUniformList.getItem(coord).blockName : undefined;
 }
 
 function placeBlock(x, y, z, id) {
@@ -49,7 +48,8 @@ function placeBlock(x, y, z, id) {
         texture: texture,
         bumpTexture: bumpTextures[name],
         modelMatrix: m4.translate(m4.identity(), [x, y, z]),
-        isCubemap: isCubemap
+        isCubemap: isCubemap,
+        blockName: name
     });
 }
 
@@ -77,13 +77,14 @@ function replaceBlock(x, y, z, id) {
 function placeBlockByMap(mapName, offset) {
     const mapLocation = "./map/" + mapName + ".txt";
     const lines = readTextFile(mapLocation).split('\n');
+    if(offset === undefined) offset = [0, 0, 0];
     lines.forEach(function(line) {
         if(line !== "") {
             const words = line.split(' ');
-            console.log(words);
+            // console.log(words);
             const pos = words.slice(0, 4).map(Number);
             const id = (words.length === 4) ? pos[3] : [pos[3], pos[4]];
-            placeBlock(pos[0], pos[1], pos[2], pos[3]);
+            placeBlock(pos[0]+offset[0], pos[1]+offset[1], pos[2]+offset[2], pos[3]);
         }
     });
 }

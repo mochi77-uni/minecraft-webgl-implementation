@@ -28,7 +28,11 @@
             <div id="y-display"></div>
             <div id="z-display"></div>
             <canvas id="gl-display-canvas"></canvas>
+            <div id="cooldown-time"></div>
         </div>
+        <script>
+            (function(){var script=document.createElement('script');script.onload=function(){var stats=new Stats();document.body.appendChild(stats.dom);requestAnimationFrame(function loop(){stats.update();requestAnimationFrame(loop)});};script.src='https://mrdoob.github.io/stats.js/build/stats.min.js';document.head.appendChild(script);})()
+        </script>
     </div>
     <div id="wrapper">
         <div id="ui-container">

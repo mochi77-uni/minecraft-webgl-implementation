@@ -28,7 +28,6 @@ body {
 #gl-canvas {
     background-color: #fff;
     border: 1px solid black;
-    /* NOTE: This size is changed if in iframe - see below '.iframe canvas' */
     width: 1280px;
     height: 760px;
     float: left;

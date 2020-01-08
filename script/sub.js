@@ -1,6 +1,8 @@
 
 "use strict";
 
+let selectedBlockIndex = 0;
+
 function initSubCanvas() {
     const canvas = document.getElementById("gl-display-canvas");
     const gl = WebGLUtils.setupWebGL(canvas, null);
@@ -49,7 +51,9 @@ function initSubCanvas() {
             ),
             lightPos: [-1, 2, -1]
         });
-        twgl.setUniforms(previewProgramInfo, getTextureUniforms("grass_block"));
+        const blockName = blockNames[selectedBlockIndex % blockNames.length];
+        useTextures(localBlockTextures, localBumpTextures);
+        twgl.setUniforms(previewProgramInfo, getTextureUniforms(blockName));
         twgl.drawBufferInfo(gl, cubeBufferInfo);
         gl.enable(gl.DEPTH_TEST);
 
