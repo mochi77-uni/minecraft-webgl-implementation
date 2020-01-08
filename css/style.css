@@ -6,7 +6,8 @@ body {
 #canvas-container {
     position: relative;
 }
-#overlay {
+
+.overlay {
     position: absolute;
     left: 10px;
     top: 10px;
@@ -14,7 +15,14 @@ body {
     color: white;
     font-family: monospace;
     font-size: 20px;
-    padding: 1em;
+    padding: 0.5em;
+}
+
+#gl-display-canvas {
+    /*background-color: #fff;*/
+    padding-top: 10px;
+    width: 130px;
+    height: 130px;
 }
 
 #gl-canvas {

@@ -7,7 +7,6 @@ varying vec3 f_lightDir;
 
 uniform sampler2D texture;
 uniform sampler2D bumpTexture;
-uniform float bias;
 
 void main() {
 

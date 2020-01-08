@@ -1,6 +1,5 @@
 
-let blocksUniformList = [];
-let blockPosition = new HashTable();
+let blocksUniformList = new HashTable();
 let blockTextures, bumpTextures;
 
 function readTextFile(file){
@@ -33,21 +32,26 @@ function getNameById(object, value) {
 }
 
 function placeBlock(x, y, z, id) {
-    if(blockPosition.getItem([x, y, z])) {
+    if(blocksUniformList.hasItem([x, y, z])) {
         console.log('OCCUPIED');
         return;
     }
     const name = (typeof id === "string") ? id : getNameById(blockIdList, id);
     const isCubemap = cubeMapBlocksList.includes(name);
     // console.log(id);
-    blocksUniformList.push({
+    blocksUniformList.setItem([x, y, z], {
         texture: blockTextures[name],
         bumpTexture: bumpTextures[name],
         modelMatrix: m4.translate(m4.identity(), [x, y, z]),
-        isCubemap: isCubemap,
-        pos: [x, y, z]
+        isCubemap: isCubemap
     });
-    blockPosition.setItem([x, y, z], true);
+}
+
+function removeBlock(x, y, z) {
+    if(blocksUniformList.hasItem([x, y, z])) {
+        blocksUniformList.setItem([x, y, z], undefined);
+        blocksUniformList.removeItem([x, y, z]);
+    }
 }
 
 function placeBlockByMap(mapName, offset) {

@@ -73,7 +73,6 @@ window.onload = function init() {
 	const shadowProgramInfo = createProgramInfo(gl, "shaders/shadow.vert", "shaders/shadow.frag");
 	const skyboxProgramInfo = createProgramInfo(gl, "shaders/skybox.vert", "shaders/skybox.frag");
 	const testProgramInfo = createProgramInfo(gl, "shaders/test.vert", "shaders/test.frag");
-	const previewProgramInfo = createProgramInfo(gl, "shaders/preview.vert", "shaders/preview.frag");
 	console.log(generalProgramInfo, shadowProgramInfo);
 
 	// create depth texture for shadow
@@ -146,7 +145,7 @@ window.onload = function init() {
 		for(let j = -2; j < 2; j++)
 			for(let k = -2; k < 2; k++)
 					placeBlock(i+3, j, k+3, "bricks");
-	placeBlockByMap("field");
+	// placeBlockByMap("field");
 	// placeBlocks();
 
 	const skyBufferInfo = twgl.primitives.createXYQuadBufferInfo(gl);
@@ -190,7 +189,7 @@ window.onload = function init() {
 		// viewField: 30,
 		projWidth: 64,
 		projHeight: 64,
-		bias: -0.019
+		bias: -0.006
 	};
 	settings.cameraTarget = v3.add(settings.cameraPos, [5.0, -1.0, -5.0]);
 	settings.lightPos = v3.add(settings.cameraPos, [5.0, 15.0, -5.0]);
@@ -218,14 +217,14 @@ window.onload = function init() {
 		{type: 'slider', key: '2', min: -10, max: 10, precision: 4, step: 0.0001},
 	]);
 
-	gl.clearColor(1.0, 1.0, 1.0, 1.0);
+	initSubCanvas();
 	render();
 
 	function render() {
 		twgl.resizeCanvasToDisplaySize(gl.canvas);
-		updateCamera(0.1);
-		updateCameraDir(0.2);
-
+		updateCamera(0.15);
+		updateCameraDir(0.25);
+		gl.clearColor(1.0, 1.0, 1.0, 1.0);
 		gl.enable(gl.CULL_FACE);
 		gl.enable(gl.DEPTH_TEST);
 
@@ -315,9 +314,12 @@ window.onload = function init() {
 		});
 
 		twgl.setBuffersAndAttributes(gl, programInfo, cubeBufferInfo);
-		blocksUniformList.forEach(function(item, index) {
-			twgl.setUniforms(programInfo, item);
-			twgl.drawBufferInfo(gl, cubeBufferInfo);
+		blocksUniformList.keys.forEach(function(key) {
+			if(blocksUniformList.hasItem(key)) {
+				const item = blocksUniformList.getItem(key);
+				twgl.setUniforms(programInfo, item);
+				twgl.drawBufferInfo(gl, cubeBufferInfo);
+			}
 		});
 
 		// twgl.setBuffersAndAttributes(gl, programInfo, planeBufferInfo);
@@ -328,7 +330,7 @@ window.onload = function init() {
 	function drawScene(projMatrix, cameraMatrix, textureMatrix, lightModelMatrix) {
 		const viewMatrix = m4.inverse(cameraMatrix);
 
-		// draw skybox
+		/** draw skybox **/
 		gl.depthFunc(gl.LEQUAL);
 		let viewDirMatrix = m4.copy(viewMatrix);
 		viewDirMatrix[12] = 0;
@@ -344,46 +346,29 @@ window.onload = function init() {
 		twgl.drawBufferInfo(gl, skyBufferInfo);
 
 
-		// draw blocks
+		/** draw blocks **/
 		gl.depthFunc(gl.LESS);
-		blocksUniformList.forEach(function(item, index) {
-			if(v3.length(v3.subtract(settings.cameraPos, item.pos)) <= 36.0) {
-				gl.useProgram(generalProgramInfo.program);
-				twgl.setBuffersAndAttributes(gl, generalProgramInfo, cubeBufferInfo);
-				twgl.setUniforms(generalProgramInfo, {
-					viewMatrix: viewMatrix,
-					projMatrix: projMatrix,
-					texMatrix: textureMatrix,
-					projectedTexture: depthTexture,
-					lightPos: settings.lightPos,
-					bias: settings.bias
-				});
-				twgl.setUniforms(generalProgramInfo, item);
-				twgl.drawBufferInfo(gl, cubeBufferInfo);
+		blocksUniformList.keys.forEach(function(key, index) {
+			if(blocksUniformList.hasItem(key)) {
+				const item = blocksUniformList.getItem(key);
+				if (v3.length(v3.subtract(settings.cameraPos, key)) <= 36.0) {
+					gl.useProgram(generalProgramInfo.program);
+					twgl.setBuffersAndAttributes(gl, generalProgramInfo, cubeBufferInfo);
+					twgl.setUniforms(generalProgramInfo, {
+						viewMatrix: viewMatrix,
+						projMatrix: projMatrix,
+						texMatrix: textureMatrix,
+						projectedTexture: depthTexture,
+						lightPos: settings.lightPos,
+						bias: settings.bias
+					});
+					twgl.setUniforms(generalProgramInfo, item);
+					twgl.drawBufferInfo(gl, cubeBufferInfo);
+				}
 			}
 		});
 
-		// draw cube for selected block
-		gl.disable(gl.DEPTH_TEST);
-		gl.useProgram(previewProgramInfo.program);
-		twgl.setBuffersAndAttributes(gl, previewProgramInfo, cubeBufferInfo);
-		twgl.setUniforms(previewProgramInfo, {
-			modelMatrix: m4.rotationY(time),
-			viewMatrix: m4.inverse(m4.lookAt(
-				[0, 2, 5],
-				[0, 0, 0],
-				[0, 1, 0]
-			)),
-			projMatrix: projMatrix,
-			lightPos: settings.lightPos,
-			time: time
-		});
-		twgl.setUniforms(previewProgramInfo, getTextureUniforms("grass_block"));
-		// console.log(getTextureUniforms('grass_block'));
-		// twgl.drawBufferInfo(gl, cubeBufferInfo);
-		gl.enable(gl.DEPTH_TEST);
-
-		// draw point for camera target
+		/** draw point for camera target **/
 		gl.useProgram(testProgramInfo.program);
 		twgl.setUniforms(testProgramInfo, {
 			viewMatrix: viewMatrix,
@@ -402,6 +387,14 @@ window.onload = function init() {
 		document.addEventListener('mousedown', keyMouseDownHandler);
 		document.addEventListener('mouseup', keyMouseUpHandler);
 		document.addEventListener('mousemove', keyMouseMoveHandler);
+	}
+
+	function getBlockCoord(pos) {
+		let coord = [0.0, 0.0, 0.0]
+		for(let i = 0; i < 3; i++) {
+			coord[i] = Math.floor(pos[i] + 0.5);
+		}
+		return coord;
 	}
 
 	function keyDownHandler(e) {
@@ -425,6 +418,18 @@ window.onload = function init() {
 			spacePressed = true;
 		else if(e.code === "ShiftLeft")
 			shiftPressed = true;
+		else if(e.code === "KeyQ") {
+			for(let i = -4; i < 4; i++)
+				for(let j = -4; j < 4; j++)
+					for(let k = -4; k < 4; k++)
+						if( i*i + j*j + k*k <= 9.0 ) {
+							const x = settings.cameraPos[0] + i;
+							const y = settings.cameraPos[1] + j;
+							const z = settings.cameraPos[2] + k;
+							const coord = getBlockCoord([x, y, z]);
+							removeBlock(coord[0], coord[1], coord[2]);
+						}
+		}
 	}
 
 	function keyUpHandler(e) {
