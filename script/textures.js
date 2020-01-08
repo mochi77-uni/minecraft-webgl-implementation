@@ -23,7 +23,7 @@ const cubeMapBlocksList = [
 function getBlockTextures(gl) {
     const texInfos = {};
     blockNames.forEach(function(name) {
-        srcName = "img/texture/" + name + ".png";
+        srcName = "./img/texture/" + name + ".png";
         texInfos[name] = {src: srcName };
     });
     return twgl.createTextures(gl, texInfos);
@@ -32,7 +32,7 @@ function getBlockTextures(gl) {
 function getBumpTextures(gl) {
     const texInfos = {};
     bumpNames.forEach(function(name) {
-        srcName = "img/texture_n/" + name + "_n.png";
+        srcName = "./img/texture_n/" + name + "_n.png";
         texInfos[name] = {src: srcName };
     });
     return twgl.createTextures(gl, texInfos);
@@ -48,12 +48,12 @@ function getSkyTexture(gl) {
         'https://webglfundamentals.org/webgl/resources/images/computer-history-museum/neg-z.jpg',
     ];
     const imageSrc = [
-        "img/sky/Left.bmp",
-        "img/sky/Right.bmp",
-        "img/sky/Top.bmp",
-        "img/sky/bottom.bmp",
-        "img/sky/Front.bmp",
-        "img/sky/Back.bmp",
+        "./img/sky/Left.bmp",
+        "./img/sky/Right.bmp",
+        "./img/sky/Top.bmp",
+        "./img/sky/bottom.bmp",
+        "./img/sky/Front.bmp",
+        "./img/sky/Back.bmp",
     ];
     return twgl.createTexture(gl, {
        target: gl.TEXTURE_CUBE_MAP,
