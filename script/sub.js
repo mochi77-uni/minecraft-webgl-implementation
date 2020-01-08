@@ -2,7 +2,7 @@
 "use strict";
 
 function initSubCanvas() {
-
+    return;
     const canvas = document.getElementById("gl-display-canvas");
     const gl = WebGLUtils.setupWebGL(canvas, null);
     const previewProgramInfo = createProgramInfo(gl, "shaders/preview.vert", "shaders/preview.frag");

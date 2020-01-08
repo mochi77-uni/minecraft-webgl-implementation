@@ -145,8 +145,7 @@ window.onload = function init() {
 		for(let j = -2; j < 2; j++)
 			for(let k = -2; k < 2; k++)
 					placeBlock(i+3, j, k+3, "bricks");
-	// placeBlockByMap("field");
-	// placeBlocks();
+	placeBlockByMap("field");
 
 	const skyBufferInfo = twgl.primitives.createXYQuadBufferInfo(gl);
 
@@ -181,7 +180,7 @@ window.onload = function init() {
 	});
 
 	const settings = {
-		cameraPos: [0.0, 5.0, 0.0],
+		cameraPos: [0.0, 1.8, 0.0],
 		cameraTarget: [0, 0, 0],
 		cameraUp: [0, 1, 0],
 		lightPos: [1.0, 0, 2.0],
@@ -191,7 +190,7 @@ window.onload = function init() {
 		projHeight: 64,
 		bias: -0.006
 	};
-	settings.cameraTarget = v3.add(settings.cameraPos, [5.0, -1.0, -5.0]);
+	settings.cameraTarget = v3.add(settings.cameraPos, [-5.0, 0.0, 0.0]);
 	settings.lightPos = v3.add(settings.cameraPos, [5.0, 15.0, -5.0]);
 	// settings.lightTarget = v3.subtract(settings.cameraPos, [0.0, 20.0, 0.0]);
 
@@ -369,14 +368,15 @@ window.onload = function init() {
 		});
 
 		/** draw point for camera target **/
+		const selectedCoord = getBlockCoord(settings.cameraTarget);
 		gl.useProgram(testProgramInfo.program);
 		twgl.setUniforms(testProgramInfo, {
 			viewMatrix: viewMatrix,
 			projMatrix: projMatrix,
-			modelMatrix: m4.translate(m4.identity(), settings.cameraTarget)
+			modelMatrix: m4.scale(m4.translation(selectedCoord), [0.5, 0.5, 0.5])
 		});
-		twgl.setBuffersAndAttributes(gl, testProgramInfo, sphereBufferInfo);
-		twgl.drawBufferInfo(gl, sphereBufferInfo);
+		twgl.setBuffersAndAttributes(gl, testProgramInfo, cubeLinesBufferInfo);
+		twgl.drawBufferInfo(gl, cubeLinesBufferInfo, gl.LINES);
 
 		time += 0.05;
 	}
@@ -429,6 +429,10 @@ window.onload = function init() {
 							const coord = getBlockCoord([x, y, z]);
 							removeBlock(coord[0], coord[1], coord[2]);
 						}
+		}
+		else if(e.code === "KeyE") {
+			const coord = getBlockCoord(settings.cameraTarget);
+			replaceBlock(coord[0], coord[1], coord[2], "grass_block");
 		}
 	}
 
