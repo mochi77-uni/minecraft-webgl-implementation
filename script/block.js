@@ -53,25 +53,31 @@ function placeBlock(x, y, z, id) {
     });
 }
 
-function removeBlock(x, y, z) {
+function removeBlock(x, y, z, sound) {
     if(blocksUniformList.hasItem([x, y, z])) {
         blocksUniformList.setItem([x, y, z], undefined);
         blocksUniformList.removeItem([x, y, z]);
+        if(sound !== undefined)
+            sound.cloneNode(true).play();
     }
 }
 
-function replaceBlock(x, y, z, id) {
-    if(blocksUniformList.hasItem([x, y, z])) {
-        blocksUniformList.removeItem([x, y, z]);
-    }
+function replaceBlock(x, y, z, id, sound) {
     const name = (typeof id === "string") ? id : getNameById(blockIdList, id);
+    // console.log(name, getBlockName([x, y, z]));
+    if(getBlockName([x, y, z]) === name) {
+        // console.log(name, getBlockName([x, y, z]));
+        return;
+    } else blocksUniformList.removeItem([x, y, z]);
     const isCubemap = cubeMapBlocksList.includes(name);
     blocksUniformList.setItem([x, y, z], {
         texture: blockTextures[name],
         bumpTexture: bumpTextures[name],
         modelMatrix: m4.translate(m4.identity(), [x, y, z]),
-        isCubemap: isCubemap
+        isCubemap: isCubemap,
+        blockName: name
     });
+    sound.cloneNode(true).play();
 }
 
 function placeBlockByMap(mapName, offset) {

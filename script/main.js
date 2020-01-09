@@ -450,16 +450,14 @@ window.onload = function init() {
 		}
 		else if(e.code === "KeyQ") {
 			const audioIndex = Math.floor(Math.random() * 4) + 1;
-			digBlockAudios[audioIndex].cloneNode(true).play();
 			const coord = getBlockCoord(settings.cameraTarget);
-			removeBlock(coord[0], coord[1], coord[2]);
+			removeBlock(coord[0], coord[1], coord[2], digBlockAudios[audioIndex]);
 		}
 		else if(e.code === "KeyE") {
-			placeBlockAudio.cloneNode(true).play();
 			const coord = getBlockCoord(settings.cameraTarget);
 			const blockName = blockNames[selectedBlockIndex % blockNames.length];
 			useTextures(localBlockTextures, localBumpTextures, checkerboardTexture);
-			replaceBlock(coord[0], coord[1], coord[2], blockName);
+			replaceBlock(coord[0], coord[1], coord[2], blockName, placeBlockAudio);
 		}
 		else if(e.code === "Digit1") {
 			selectedBlockIndex--;
