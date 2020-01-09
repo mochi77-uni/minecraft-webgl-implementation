@@ -91,7 +91,7 @@ window.onload = function init() {
 	const generalProgramInfo = createProgramInfo(gl, "shaders/general.vert", "shaders/general.frag");
 	const shadowProgramInfo = createProgramInfo(gl, "shaders/shadow.vert", "shaders/shadow.frag");
 	const skyboxProgramInfo = createProgramInfo(gl, "shaders/skybox.vert", "shaders/skybox.frag");
-	const testProgramInfo = createProgramInfo(gl, "shaders/test.vert", "shaders/test.frag");
+	const testProgramInfo = createProgramInfo(gl, "shaders/target.vert", "shaders/target.frag");
 	console.log(generalProgramInfo, shadowProgramInfo);
 
 	/** create depth texture for shadow map**/
@@ -164,7 +164,7 @@ window.onload = function init() {
 		for(let j = -2; j < 2; j++)
 			for(let k = -2; k < 2; k++)
 					placeBlock(i+3, j, k+3, "bricks");
-	placeBlockByMap("field6", [8, 0, 8]);
+	// placeBlockByMap("field6", [8, 0, 8]);
 
 	/** create buffer infos **/
 	const skyBufferInfo = twgl.primitives.createXYQuadBufferInfo(gl);

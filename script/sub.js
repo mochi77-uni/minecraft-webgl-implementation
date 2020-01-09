@@ -1,7 +1,7 @@
 
 "use strict";
 
-let selectedBlockIndex = 0;
+let selectedBlockIndex = 2;
 
 function initSubCanvas() {
     const canvas = document.getElementById("gl-display-canvas");
