@@ -452,7 +452,7 @@ window.onload = function init() {
 			const audioIndex = Math.floor(Math.random() * 4) + 1;
 			digBlockAudios[audioIndex].cloneNode(true).play();
 			const coord = getBlockCoord(settings.cameraTarget);
-			replaceBlock(coord[0], coord[1], coord[2]);
+			removeBlock(coord[0], coord[1], coord[2]);
 		}
 		else if(e.code === "KeyE") {
 			placeBlockAudio.cloneNode(true).play();
