@@ -153,7 +153,7 @@ window.onload = function init() {
 		}
 
 	for(let i = 0; i < 6; i++)
-		placeBlock(-3, -4+i, -3, "oak_log");
+		placeBlock(-3, -4+i, -3, [17, 2]);
 
 	for(let i = -5; i < 5; i++)
 		for(let j = -5; j < 5; j++)
@@ -164,7 +164,7 @@ window.onload = function init() {
 		for(let j = -2; j < 2; j++)
 			for(let k = -2; k < 2; k++)
 					placeBlock(i+3, j, k+3, "bricks");
-	placeBlockByMap("field5", [8, 0, 8]);
+	placeBlockByMap("field6", [8, 0, 8]);
 
 	/** create buffer infos **/
 	const skyBufferInfo = twgl.primitives.createXYQuadBufferInfo(gl);

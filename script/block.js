@@ -87,10 +87,13 @@ function placeBlockByMap(mapName, offset) {
     lines.forEach(function(line) {
         if(line !== "") {
             const words = line.split(' ');
-            // console.log(words);
-            const pos = words.slice(0, 4).map(Number);
-            const id = (words.length === 4) ? pos[3] : [pos[3], pos[4]];
-            placeBlock(pos[0]+offset[0], pos[1]+offset[1], pos[2]+offset[2], pos[3]);
+            const pos = words.slice(0, 3).map(Number);
+            const id = (words.length === 4)
+                ? parseInt(words[3])
+                : [parseInt(words[3]), parseInt(words[4])];
+            if(words[3] === "17")
+                console.log(words,id);
+            placeBlock(pos[0]+offset[0], pos[1]+offset[1], pos[2]+offset[2], id);
         }
     });
 }
